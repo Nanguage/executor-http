@@ -1,5 +1,5 @@
 import typing as T
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from executor.engine.job import Job, LocalJob, ThreadJob, ProcessJob
@@ -23,12 +23,16 @@ async def call(req: CallRequest):
     try:
         task = task_table[req.task_name]
     except KeyError:
-        return {"error": "Function not registered."}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Function not registered.")
 
     job_cls: T.Type["Job"]
 
     if req.job_type not in valid_job_type:
-        return {"error": f"Not valid job type: {req.job_type}"}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"Not valid job type: {req.job_type}")
 
     if req.job_type == "local":
         job_cls = LocalJob

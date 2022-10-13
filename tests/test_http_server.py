@@ -117,3 +117,39 @@ def test_get_job_result():
     resp = client.get(f"/job/result/{job_id}")
     assert resp.status_code == 200
     assert resp.json()['result'] == 80
+
+
+@pytest.mark.order(7)
+def test_errors():
+    fake_job_id = "fake"
+    for mth in ["status", "cancel", "re_run"]:
+        resp = client.get(f"/job/{mth}/{fake_job_id}")
+        assert resp.status_code == 400
+
+    fake_task_name = "fake"
+    resp = client.post(
+        f"/task/call",
+        json={
+            "task_name": fake_task_name,
+            "args": [],
+            "kwargs": {},
+            "job_type": "local",
+        }
+    )
+    assert resp.status_code == 400
+
+    def mul_2(x, y):
+        return x * y
+    task_table.register(mul_2)
+    valid_job_type.clear()
+    valid_job_type.append("thread")
+    resp = client.post(
+        f"/task/call",
+        json={
+            "task_name": "mul_2",
+            "args": [1, 2],
+            "kwargs": {},
+            "job_type": "local",
+        }
+    )
+    assert resp.status_code == 400

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 from executor.engine.job.utils import InvalidStateError, JobEmitError
 
@@ -15,7 +15,9 @@ async def get_job_status(job_id: str):
     if job:
         return job.to_dict()
     else:
-        return {'error': 'Job not found.'}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found.")
 
 
 @router.get("/valid_types")
@@ -44,26 +46,34 @@ async def cancel_job(job_id: str):
         await job.cancel()
         return job.to_dict()
     else:
-        return {"error": "The job is not in running or pending."}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="The job is not in running or pending.")
 
 
 @router.get("/re_run/{job_id}")
 async def re_run_job(job_id: str):
     job = engine.jobs.get_job_by_id(job_id)
     if job is None:
-        return {'error': 'Job not found.'}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found")
     try:
         await job.rerun()
         return job.to_dict()
     except JobEmitError as e:
-        return {'error': str(e)}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=str(e))
 
 
 @router.get("/result/{job_id}")
 async def wait_job_result(job_id: str):
     job = engine.jobs.get_job_by_id(job_id)
     if job is None:
-        return {'error': 'Job not found.'}
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found")
     try:
         await job.join()
         return {
