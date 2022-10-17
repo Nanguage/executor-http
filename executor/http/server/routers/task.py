@@ -45,7 +45,8 @@ async def call(req: CallRequest):
         task.func, tuple(req.args), req.kwargs,
         callback=None,
         error_callback=None,
-        name=task.name)
+        name=task.name,
+        redirect_out_err=True)
     await engine.submit(job)
     return job.to_dict()
 

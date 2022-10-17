@@ -81,7 +81,34 @@ async def wait_job_result(job_id: str):
             'result': job.result(),
         }
     except InvalidStateError:
-        return {
-            'error': 'Job can not fetch result',
-            'job': job.to_dict(),
-        }
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job can not fetch result",
+        )
+
+
+def _read_then_return(job_id: str, fname: str):
+    job = engine.jobs.get_job_by_id(job_id)
+    if job is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found")
+    try:
+        with open(job.cache_dir / fname) as f:
+            content = f.read()
+        return {'content': content}
+    except Exception as e:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/stdout/{job_id}")
+async def get_job_stdout(job_id: str):
+    return _read_then_return(job_id, "stdout.txt")
+
+
+@router.get("/stderr/{job_id}")
+async def get_job_stderr(job_id: str):
+    return _read_then_return(job_id, "stderr.txt")

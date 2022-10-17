@@ -153,3 +153,28 @@ def test_errors():
         }
     )
     assert resp.status_code == 400
+
+
+@pytest.mark.order(8)
+def test_fetch_log():
+    valid_job_type.append("local")
+    def say_hello():
+        print("hello")
+    task_table.register(say_hello)
+    resp = client.post(
+        f"/task/call",
+        json={
+            "task_name": "say_hello",
+            "args": [],
+            "kwargs": {},
+            "job_type": "local",
+        }
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    resp = client.get(
+        f"/job/result/{job_id}",
+    )
+    assert resp.status_code == 200
+    resp = client.get(f"/job/stdout/{job_id}")
+    assert resp.status_code == 200
