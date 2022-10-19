@@ -1,4 +1,5 @@
 import time
+import sys
 
 from fastapi.testclient import TestClient
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from executor.http.server.app import create_app
 from executor.http.server.config import task_table, valid_job_type
 from executor.http.server.task import Task
+from executor.http.server import config
 
 app = create_app()
 
@@ -178,3 +180,28 @@ def test_fetch_log():
     assert resp.status_code == 200
     resp = client.get(f"/job/stdout/{job_id}")
     assert resp.status_code == 200
+
+
+@pytest.mark.order(9)
+def test_list_dir():
+    resp = client.post(
+        "/file/list_dir",
+        json={
+            "path": ""
+        }
+    )
+    assert resp.status_code == 200
+    resp = client.post(
+        "/file/list_dir",
+        json={
+            "path": "not_exists"
+        }
+    )
+    assert resp.status_code == 404
+    resp = client.post(
+        "/file/list_dir",
+        json={
+            "path": "../../"
+        }
+    )
+    assert resp.status_code == 403
