@@ -1,3 +1,4 @@
+import sys
 import typing as T
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -41,10 +42,13 @@ async def call(req: CallRequest):
     else:
         job_cls = ProcessJob
 
+    def print_error(err):
+        print(err, file=sys.stderr)
+
     job = job_cls(
         task.func, tuple(req.args), req.kwargs,
         callback=None,
-        error_callback=None,
+        error_callback=print_error,
         name=task.name,
         redirect_out_err=True)
     await engine.submit(job)

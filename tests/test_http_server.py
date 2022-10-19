@@ -1,5 +1,5 @@
 import time
-import sys
+import os
 
 from fastapi.testclient import TestClient
 import pytest
@@ -174,12 +174,11 @@ def test_fetch_log():
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client.get(
-        f"/job/result/{job_id}",
-    )
+    resp = client.get(f"/job/result/{job_id}")
     assert resp.status_code == 200
     resp = client.get(f"/job/stdout/{job_id}")
     assert resp.status_code == 200
+    assert resp.json()['content'] == "hello\n"
 
 
 @pytest.mark.order(9)
@@ -205,3 +204,13 @@ def test_list_dir():
         }
     )
     assert resp.status_code == 403
+
+
+@pytest.mark.order(10)
+def test_download_file():
+    test_file = "for_download.txt"
+    with open(test_file, 'w') as f:
+        f.write("123")
+    resp = client.post("/file/download", json={"path": test_file})
+    assert resp.status_code == 200
+    os.remove(test_file)    
