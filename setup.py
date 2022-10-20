@@ -38,7 +38,7 @@ def get_long_description():
 
 
 def get_install_requires():
-    requirements = ["executor-engine", "fastapi", "uvicorn", "oneface>=0.1.9"]
+    requirements = ["executor-engine", "fastapi", "uvicorn", "oneface>=0.1.9", "python-multipart"]
     return requirements
 
 

@@ -1,10 +1,12 @@
-from os.path import abspath
+import typing as T
+from os.path import abspath, join
 from pathlib import Path
 from datetime import datetime
-from fastapi.responses import FileResponse
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, File, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
 from .. import config
 
 
@@ -22,7 +24,6 @@ def is_sub_path(parent: Path, sub: Path) -> bool:
 def get_path(path_str: str) -> Path:
     working_path = Path(config.working_dir).absolute()
     path = (working_path / path_str).absolute()
-    print(path)
     if not is_sub_path(working_path, path):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -67,3 +68,12 @@ async def download(req: DownloadReq):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The path is not a file.")
     return FileResponse(abspath(path))
+
+
+@router.post("/upload")
+async def upload(path: str, files: T.List[UploadFile] = File(...)):
+    for file in files:
+        file_path = get_path(join(path, file.filename))
+        content = await file.read()
+        with open(file_path, 'wb') as f:
+            f.write(content)

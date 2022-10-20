@@ -7,7 +7,6 @@ import pytest
 from executor.http.server.app import create_app
 from executor.http.server.config import task_table, valid_job_type
 from executor.http.server.task import Task
-from executor.http.server import config
 
 app = create_app()
 
