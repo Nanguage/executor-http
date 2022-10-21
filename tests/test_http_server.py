@@ -235,3 +235,24 @@ def test_upload_file():
         assert f.read() == "123"
     shutil.rmtree(target_path)
     os.remove(test_file)
+
+
+@pytest.mark.order(11)
+def test_delete_files():
+    files_for_delete = ["a.txt", "b.txt"]
+    for fname in files_for_delete:
+        with open(fname, 'w') as f:
+            f.write("111")
+    resp = client.post(
+        "/file/delete", json={"paths": files_for_delete})
+    assert resp.status_code == 200
+    assert all([not Path(f).exists() for f in files_for_delete])
+    dirs_for_delete = ["a/", "b/"]
+    for d in dirs_for_delete:
+        os.mkdir(d)
+        with open(d+"/a", 'w') as f:
+            f.write("1")
+    resp = client.post(
+        "/file/delete", json={"paths": dirs_for_delete})
+    assert resp.status_code == 200
+    assert all([not Path(f).exists() for f in dirs_for_delete])

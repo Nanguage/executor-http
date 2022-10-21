@@ -1,5 +1,7 @@
 import typing as T
+import os
 from os.path import abspath, join
+from shutil import rmtree
 from pathlib import Path
 from datetime import datetime
 
@@ -27,7 +29,7 @@ def get_path(path_str: str) -> Path:
     if not is_sub_path(working_path, path):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            detail="Requested path can't outside the working dir")
+            detail=f"Requested path can't outside the working dir: {path_str}")
     return path
 
 
@@ -77,3 +79,20 @@ async def upload(path: str, files: T.List[UploadFile] = File(...)):
         content = await file.read()
         with open(file_path, 'wb') as f:
             f.write(content)
+
+
+class DeleteReq(BaseModel):
+    paths: T.List[str]
+
+
+@router.post("/delete")
+async def delete(req: DeleteReq):
+    paths_to_delete: T.List[Path] = []
+    for p in req.paths:
+        path = get_path(p)
+        paths_to_delete.append(path)
+    for path in paths_to_delete:
+        if path.is_dir():
+            rmtree(path)
+        else:
+            os.remove(path)
