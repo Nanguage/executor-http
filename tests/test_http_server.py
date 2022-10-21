@@ -1,5 +1,7 @@
 import time
 import os
+from pathlib import Path
+import shutil
 
 from fastapi.testclient import TestClient
 import pytest
@@ -213,3 +215,23 @@ def test_download_file():
     resp = client.post("/file/download", json={"path": test_file})
     assert resp.status_code == 200
     os.remove(test_file)    
+
+
+@pytest.mark.order(10)
+def test_upload_file():
+    test_file = "for_upload.txt"
+    with open(test_file, 'w') as f:
+        f.write("123")
+    target_path = Path("test_upload/")
+    target_path.mkdir(exist_ok=True)
+    with open(test_file, 'rb') as f:
+        files = {'files': f}
+        resp = client.post(
+            f"/file/upload?path={target_path}",
+            files=files,
+            )
+        assert resp.status_code == 200
+    with open(target_path/test_file, 'r') as f:
+        assert f.read() == "123"
+    shutil.rmtree(target_path)
+    os.remove(test_file)
