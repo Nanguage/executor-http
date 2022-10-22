@@ -256,3 +256,24 @@ def test_delete_files():
         "/file/delete", json={"paths": dirs_for_delete})
     assert resp.status_code == 200
     assert all([not Path(f).exists() for f in dirs_for_delete])
+
+
+@pytest.mark.order(12)
+def test_move_files():
+    files_for_move = ["a.txt", "b.txt"]
+    for fname in files_for_move:
+        with open(fname, 'w') as f:
+            f.write("111")
+    dest_dir = "a/"
+    os.mkdir(dest_dir)
+    resp = client.post(
+        "/file/move",
+        json={
+            "paths": files_for_move,
+            "destination": dest_dir,
+        }
+    )
+    assert resp.status_code == 200
+    assert all([(Path(dest_dir) / f).exists() for f in files_for_move])
+    assert all([(not Path(f).exists()) for f in files_for_move])
+    shutil.rmtree(dest_dir)

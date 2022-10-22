@@ -1,7 +1,7 @@
 import typing as T
 import os
+import shutil
 from os.path import abspath, join
-from shutil import rmtree
 from pathlib import Path
 from datetime import datetime
 
@@ -93,6 +93,28 @@ async def delete(req: DeleteReq):
         paths_to_delete.append(path)
     for path in paths_to_delete:
         if path.is_dir():
-            rmtree(path)
+            shutil.rmtree(path)
         else:
             os.remove(path)
+
+
+class MoveReq(BaseModel):
+    paths: T.List[str]
+    destination: str
+
+
+@router.post("/move")
+async def move(req: MoveReq):
+    path_dest = get_path(req.destination)
+    if not path_dest.is_dir():
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"The move destination is not a dir: {path_dest}")
+    paths_to_move: T.List[Path] = []
+    for p in req.paths:
+        path = get_path(p)
+        paths_to_move.append(path)
+    for path in paths_to_move:
+        shutil.move(
+            str(path),
+            str(path_dest / path.name))
