@@ -1,6 +1,10 @@
+import typing as T
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, status
 
 from executor.engine.job.utils import InvalidStateError, JobEmitError
+from executor.engine.job import Job
 
 from ..instance import engine
 from ..config import valid_job_type
@@ -9,11 +13,26 @@ from ..config import valid_job_type
 router = APIRouter(prefix="/job")
 
 
+def format_datetime(d: T.Optional[datetime]):
+    if d is None:
+        return None
+    else:
+        return str(d)
+
+
+def ser_job(job: Job) -> dict:
+    d = job.to_dict()
+    for k, v in d.items():
+        if k.endswith("_time"):
+            d[k] = format_datetime(v)
+    return d
+
+
 @router.get("/status/{job_id}")
 async def get_job_status(job_id: str):
     job = engine.jobs.get_job_by_id(job_id)
     if job:
-        return job.to_dict()
+        return ser_job(job)
     else:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -28,8 +47,9 @@ async def get_valid_job_types():
 @router.get("/list_all")
 async def get_all_jobs():
     resp = []
+    job: Job
     for job in engine.jobs.all_jobs():
-        resp.append(job.to_dict())
+        resp.append(ser_job(job))
     return resp
 
 
@@ -40,11 +60,11 @@ async def cancel_job(job_id: str):
     if job_id in running:
         job = running[job_id]
         await job.cancel()
-        return job.to_dict()
+        return ser_job(job)
     elif job_id in pending:
         job = pending[job_id]
         await job.cancel()
-        return job.to_dict()
+        return ser_job(job)
     else:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -60,7 +80,7 @@ async def re_run_job(job_id: str):
             detail="Job not found")
     try:
         await job.rerun()
-        return job.to_dict()
+        return ser_job(job)
     except JobEmitError as e:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -77,7 +97,7 @@ async def wait_job_result(job_id: str):
     try:
         await job.join()
         return {
-            'job': job.to_dict(),
+            'job': ser_job(job),
             'result': job.result(),
         }
     except InvalidStateError:
