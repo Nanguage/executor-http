@@ -1,32 +1,14 @@
-import typing as T
-from datetime import datetime
-
 from fastapi import APIRouter, HTTPException, status
 
 from executor.engine.job.utils import InvalidStateError, JobEmitError
 from executor.engine.job import Job
 
+from ..utils import ser_job
 from ..instance import engine
 from ..config import valid_job_type
 
 
 router = APIRouter(prefix="/job")
-
-
-def format_datetime(d: T.Optional[datetime]):
-    if d is None:
-        return None
-    else:
-        return str(d)
-
-
-def ser_job(job: Job) -> dict:
-    d = job.to_dict()
-    for k, v in d.items():
-        if k.endswith("_time"):
-            d[k] = format_datetime(v)
-    return d
-
 
 @router.get("/status/{job_id}")
 async def get_job_status(job_id: str):
