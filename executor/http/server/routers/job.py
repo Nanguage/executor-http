@@ -5,7 +5,6 @@ from executor.engine.job import Job
 
 from ..utils import ser_job
 from ..instance import engine
-from ..config import valid_job_type
 
 
 router = APIRouter(prefix="/job")
@@ -19,11 +18,6 @@ async def get_job_status(job_id: str):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail="Job not found.")
-
-
-@router.get("/valid_types")
-async def get_valid_job_types():
-    return valid_job_type
 
 
 @router.get("/list_all")

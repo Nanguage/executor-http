@@ -18,6 +18,7 @@ def create_app() -> FastAPI:
         return {
             'allowed_routers': config.allowed_routers,
             'monitor_mode': config.monitor_mode,
+            'valid_job_types': config.valid_job_types,
         }
 
     if config.monitor_mode:
@@ -51,7 +52,7 @@ def run_server(
         port: int = 5000,
         log_level: str = "info",
         frontend_addr: str = "127.0.0.1:5173",
-        valid_job_type: OptionStrList = "process,thread",
+        valid_job_types: OptionStrList = "process,thread",
         working_dir: str = ".",
         allowed_routers: OptionStrList = "task,job,file",
         monitor_mode: bool = False,
@@ -59,7 +60,7 @@ def run_server(
         ):
     from . import config
 
-    def split_str(text: str, sep: str = "m") -> T.List[str]:
+    def split_str(text: str, sep: str = ",") -> T.List[str]:
         return [t.strip() for t in text.split(sep)]
     
     def parse_str_or_list(str_or_list: T.Union[str, T.List[str]]) -> T.List[str]:
@@ -70,8 +71,8 @@ def run_server(
 
     if frontend_addr not in config.origins:
         config.origins.append(frontend_addr)
-    if valid_job_type is not None:
-        config.valid_job_type = parse_str_or_list(valid_job_type)
+    if valid_job_types is not None:
+        config.valid_job_types = parse_str_or_list(valid_job_types)
     if allowed_routers is not None:
         config.allowed_routers = parse_str_or_list(allowed_routers)
     config.working_dir = str(Path(working_dir).absolute())

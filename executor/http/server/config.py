@@ -3,7 +3,7 @@ from .task import TaskTable
 
 task_table = TaskTable()
 
-valid_job_type = ['thread', 'process']
+valid_job_types = ['thread', 'process']
 
 origins = [
     "http://127.0.0.1",

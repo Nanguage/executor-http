@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from executor.http.server.app import create_app
-from executor.http.server.config import task_table, valid_job_type
+from executor.http.server.config import task_table, valid_job_types
 from executor.http.server.task import Task
 
 app = create_app()
@@ -38,13 +38,6 @@ def test_list_tasks():
     assert t['args'][0]['type'] == 'int'
     assert t['args'][0]['default'] == None
     assert t['args'][0]['range'] == None
-
-
-@pytest.mark.order(2)
-def test_get_valid_job_types():
-    resp = client.get("/job/valid_types")
-    assert resp.status_code == 200
-    assert len(resp.json()) == 2
 
 
 @pytest.mark.order(3)
@@ -105,7 +98,7 @@ def test_get_job_result():
         return x * y
     
     task_table.register(mul)
-    valid_job_type.append('local')
+    valid_job_types.append('local')
     resp = client.post(
         "/task/call",
         json={
@@ -144,8 +137,8 @@ def test_errors():
     def mul_2(x, y):
         return x * y
     task_table.register(mul_2)
-    valid_job_type.clear()
-    valid_job_type.append("thread")
+    valid_job_types.clear()
+    valid_job_types.append("thread")
     resp = client.post(
         f"/task/call",
         json={
@@ -160,7 +153,7 @@ def test_errors():
 
 @pytest.mark.order(8)
 def test_fetch_log():
-    valid_job_type.append("local")
+    valid_job_types.append("local")
     def say_hello():
         print("hello")
     task_table.register(say_hello)

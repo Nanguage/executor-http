@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from executor.engine.job import Job, LocalJob, ThreadJob, ProcessJob
 
-from ..config import task_table, valid_job_type
+from ..config import task_table, valid_job_types
 from ..instance import engine
 
 
@@ -30,7 +30,7 @@ async def call(req: CallRequest):
 
     job_cls: T.Type["Job"]
 
-    if req.job_type not in valid_job_type:
+    if req.job_type not in valid_job_types:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=f"Not valid job type: {req.job_type}")

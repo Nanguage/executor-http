@@ -18,9 +18,11 @@ def test_turn_off_routers():
 
 
 def test_get_server_setting():
+    config.valid_job_types = ['thread', 'process']
     app = create_app()
     client = TestClient(app)
     resp = client.get("/server_setting")
     assert resp.status_code == 200
     assert 'monitor_mode' in resp.json()
     assert 'allowed_routers' in resp.json()
+    assert len(resp.json()['valid_job_types']) == 2
