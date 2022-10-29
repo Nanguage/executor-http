@@ -1,4 +1,4 @@
-from email.policy import default
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 
 from executor.engine.manager import Jobs
@@ -7,7 +7,10 @@ from executor.engine.job import Job
 from .. import config
 from ..utils import ser_job
 
-jobs = Jobs(config.monitor_cache_path)
+if config.monitor_cache_path is not None:
+    jobs = Jobs(Path(config.monitor_cache_path))
+else:
+    raise ValueError("Monitor cache path is not provided, please set it in config.")
 
 router = APIRouter(prefix="/monitor")
 
