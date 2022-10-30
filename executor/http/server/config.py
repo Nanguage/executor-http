@@ -1,3 +1,6 @@
+import typing as T
+from pathlib import Path
+
 from .task import TaskTable
 
 
@@ -12,7 +15,7 @@ origins = [
     "http://localhost",
 ]
 
-working_dir = "."
+working_dir: T.Union[str, Path] = "."
 
 allowed_routers = [
     "job",
@@ -21,4 +24,4 @@ allowed_routers = [
 ]
 
 monitor_mode = False
-monitor_cache_path = None
+monitor_cache_path: T.Optional[T.Union[str, Path]] = None

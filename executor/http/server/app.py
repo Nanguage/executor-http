@@ -52,10 +52,11 @@ def run_server(
         port: int = 5000,
         log_level: str = "info",
         frontend_addr: str = "127.0.0.1:5173",
-        valid_job_types: OptionStrList = "process,thread",
-        working_dir: str = ".",
-        allowed_routers: OptionStrList = "task,job,file",
-        monitor_mode: bool = False,
+        valid_job_types: OptionStrList = None,
+        working_dir: T.Optional[T.Union[str, Path]] = ".",
+        allowed_routers: OptionStrList = None,
+        monitor_mode: T.Optional[bool] = None,
+        monitor_cache_path: T.Optional[str] = None,
         **uvicorn_kwargs,
         ):
     from . import config
@@ -75,10 +76,16 @@ def run_server(
         config.valid_job_types = parse_str_or_list(valid_job_types)
     if allowed_routers is not None:
         config.allowed_routers = parse_str_or_list(allowed_routers)
-    config.working_dir = str(Path(working_dir).absolute())
-    if config.working_dir != ".":
-        os.chdir(config.working_dir)
-    config.monitor_mode = monitor_mode
+    if working_dir is not None:
+        config.working_dir = str(Path(working_dir).absolute())
+    if monitor_mode is not None:
+        config.monitor_mode = monitor_mode
+    if monitor_cache_path is not None:
+        config.monitor_cache_path  = monitor_cache_path
+
+    if str(config.working_dir) != ".":
+        working_dir = Path(config.working_dir)
+        os.chdir(working_dir)
 
     uvicorn_config = uvicorn.Config(
         "executor.http.server.app:create_app", factory=True,
