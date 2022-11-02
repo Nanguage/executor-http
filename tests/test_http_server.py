@@ -270,3 +270,38 @@ def test_move_files():
     assert all([(Path(dest_dir) / f).exists() for f in files_for_move])
     assert all([(not Path(f).exists()) for f in files_for_move])
     shutil.rmtree(dest_dir)
+
+
+@pytest.mark.order(13)
+def test_job_condition():
+    resp = client.post(
+        "/task/call",
+        json={
+            "task_name": "mul",
+            "args": [40, 2],
+            "kwargs": {},
+            "job_type": "local",
+        }
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    resp = client.post(
+        "task/call",
+        json={
+            "task_name": "mul",
+            "args": [21, 2],
+            "kwargs": {},
+            "job_type": "local",
+            "condition": {
+                "type": "AfterAnother",
+                "arguments": {
+                    "job_id": job_id,
+                    "status": "done",
+                }
+            }
+        }
+    )
+    job_id = resp.json()['id']
+    resp = client.get(f"/job/result/{job_id}")
+    assert resp.status_code == 200
+    assert resp.json()['result'] == 42
