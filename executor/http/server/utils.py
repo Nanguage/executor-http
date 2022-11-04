@@ -41,7 +41,6 @@ def ser_job(job: Job) -> dict:
         'condition': cond_dict,
         'status': job.status,
         'job_type': job.job_type,
-        'check_time': datetime.now(),
         'created_time': format_datetime(job.created_time),
         'submit_time': format_datetime(job.submit_time),
         'stoped_time': format_datetime(job.stoped_time),
