@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from executor.engine.job import Job
 from executor.engine.job.condition import (
-    Condition,
     AfterAnother, AfterOthers, AfterTimepoint, AllSatisfied, AnySatisfied,
 )
 

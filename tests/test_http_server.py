@@ -1,7 +1,4 @@
 import time
-import os
-from pathlib import Path
-import shutil
 
 from fastapi.testclient import TestClient
 import pytest
@@ -9,6 +6,7 @@ import pytest
 from executor.http.server.app import create_app
 from executor.http.server.config import task_table, valid_job_types
 from executor.http.server.task import Task
+
 
 app = create_app()
 
@@ -42,6 +40,7 @@ def test_list_tasks():
 
 @pytest.mark.order(3)
 def test_call_task():
+    valid_job_types.append('thread')
     resp = client.post(
         "/task/call",
         json={
@@ -176,103 +175,27 @@ def test_fetch_log():
 
 
 @pytest.mark.order(9)
-def test_list_dir():
+def test_remove_job():
     resp = client.post(
-        "/file/list_dir",
+        f"/task/call",
         json={
-            "path": ""
+            "task_name": "mul_2",
+            "args": [1, 2],
+            "kwargs": {},
+            "job_type": "thread",
         }
     )
     assert resp.status_code == 200
-    resp = client.post(
-        "/file/list_dir",
-        json={
-            "path": "not_exists"
-        }
-    )
-    assert resp.status_code == 404
-    resp = client.post(
-        "/file/list_dir",
-        json={
-            "path": "../../"
-        }
-    )
-    assert resp.status_code == 403
+    job_id = resp.json()['id']
+    resp = client.get(f"/job/remove/{job_id}")
+    assert resp.status_code == 200
+    resp = client.get("/job/list_all")
+    assert resp.status_code == 200
+    job_ids = [job['id'] for job in resp.json()]
+    assert job_id not in job_ids
 
 
 @pytest.mark.order(10)
-def test_download_file():
-    test_file = "for_download.txt"
-    with open(test_file, 'w') as f:
-        f.write("123")
-    resp = client.post("/file/download", json={"path": test_file})
-    assert resp.status_code == 200
-    os.remove(test_file)    
-
-
-@pytest.mark.order(10)
-def test_upload_file():
-    test_file = "for_upload.txt"
-    with open(test_file, 'w') as f:
-        f.write("123")
-    target_path = Path("test_upload/")
-    target_path.mkdir(exist_ok=True)
-    with open(test_file, 'rb') as f:
-        files = {'files': f}
-        resp = client.post(
-            f"/file/upload?path={target_path}",
-            files=files,
-            )
-        assert resp.status_code == 200
-    with open(target_path/test_file, 'r') as f:
-        assert f.read() == "123"
-    shutil.rmtree(target_path)
-    os.remove(test_file)
-
-
-@pytest.mark.order(11)
-def test_delete_files():
-    files_for_delete = ["a.txt", "b.txt"]
-    for fname in files_for_delete:
-        with open(fname, 'w') as f:
-            f.write("111")
-    resp = client.post(
-        "/file/delete", json={"paths": files_for_delete})
-    assert resp.status_code == 200
-    assert all([not Path(f).exists() for f in files_for_delete])
-    dirs_for_delete = ["a/", "b/"]
-    for d in dirs_for_delete:
-        os.mkdir(d)
-        with open(d+"/a", 'w') as f:
-            f.write("1")
-    resp = client.post(
-        "/file/delete", json={"paths": dirs_for_delete})
-    assert resp.status_code == 200
-    assert all([not Path(f).exists() for f in dirs_for_delete])
-
-
-@pytest.mark.order(12)
-def test_move_files():
-    files_for_move = ["a.txt", "b.txt"]
-    for fname in files_for_move:
-        with open(fname, 'w') as f:
-            f.write("111")
-    dest_dir = "a/"
-    os.mkdir(dest_dir)
-    resp = client.post(
-        "/file/move",
-        json={
-            "paths": files_for_move,
-            "destination": dest_dir,
-        }
-    )
-    assert resp.status_code == 200
-    assert all([(Path(dest_dir) / f).exists() for f in files_for_move])
-    assert all([(not Path(f).exists()) for f in files_for_move])
-    shutil.rmtree(dest_dir)
-
-
-@pytest.mark.order(13)
 def test_job_condition():
     resp = client.post(
         "/task/call",

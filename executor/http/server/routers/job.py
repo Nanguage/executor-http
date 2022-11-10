@@ -63,6 +63,17 @@ async def re_run_job(job_id: str):
             detail=str(e))
 
 
+@router.get("/remove/{job_id}")
+async def remove_job(job_id: str):
+    job = engine.jobs.get_job_by_id(job_id)
+    if job is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found")
+    await engine.remove(job)
+    return ser_job(job)
+
+
 @router.get("/result/{job_id}")
 async def wait_job_result(job_id: str):
     job = engine.jobs.get_job_by_id(job_id)
