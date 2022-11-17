@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 import pytest
 
 from executor.http.server.app import create_app
-from executor.http.server.config import task_table, valid_job_types
-from executor.http.server.task import Task
+from executor.http.server.config import task_table
+from executor.http.server.task import Task, task
 
 
 app = create_app()
@@ -19,7 +19,9 @@ def test_register_task():
     def square(x: int):
         return x ** 2
 
-    task_table.register(Task(square, name='square'))
+    task_1 = Task(square, job_type="process")
+    task_table.register(task_1)
+
 
 
 @pytest.mark.order(1)
@@ -40,14 +42,12 @@ def test_list_tasks():
 
 @pytest.mark.order(3)
 def test_call_task():
-    valid_job_types.append('thread')
     resp = client.post(
         "/task/call",
         json={
             "task_name": "square",
             "args": [2],
             "kwargs": {},
-            "job_type": "thread",
         },
     )
     assert resp.status_code == 200
@@ -61,7 +61,6 @@ def test_get_all_jobs():
     assert len(resp.json()) == 1
 
 
-@pytest.mark.order(5)
 def test_cancel_and_rerun_job():
     def add(x, y):
         time.sleep(1)
@@ -74,7 +73,6 @@ def test_cancel_and_rerun_job():
             "task_name": "add",
             "args": [1, 2],
             "kwargs": {},
-            "job_type": "thread",
         }
     )
     assert resp.status_code == 200
@@ -90,21 +88,19 @@ def test_cancel_and_rerun_job():
     assert resp.json()['status'] == "pending"
 
 
-@pytest.mark.order(6)
 def test_get_job_result():
+    @task_table.register
+    @task(job_type="local")
     def mul(x, y):
         time.sleep(1)
         return x * y
-    
-    task_table.register(mul)
-    valid_job_types.append('local')
+
     resp = client.post(
         "/task/call",
         json={
             "task_name": "mul",
             "args": [40, 2],
             "kwargs": {},
-            "job_type": "local",
         }
     )
     assert resp.status_code == 200
@@ -114,7 +110,6 @@ def test_get_job_result():
     assert resp.json()['result'] == 80
 
 
-@pytest.mark.order(7)
 def test_errors():
     fake_job_id = "fake"
     for mth in ["status", "cancel", "re_run"]:
@@ -128,31 +123,13 @@ def test_errors():
             "task_name": fake_task_name,
             "args": [],
             "kwargs": {},
-            "job_type": "local",
-        }
-    )
-    assert resp.status_code == 400
-
-    def mul_2(x, y):
-        return x * y
-    task_table.register(mul_2)
-    valid_job_types.clear()
-    valid_job_types.append("thread")
-    resp = client.post(
-        f"/task/call",
-        json={
-            "task_name": "mul_2",
-            "args": [1, 2],
-            "kwargs": {},
-            "job_type": "local",
         }
     )
     assert resp.status_code == 400
 
 
-@pytest.mark.order(8)
 def test_fetch_log():
-    valid_job_types.append("local")
+    @task(job_type="local")
     def say_hello():
         print("hello")
     task_table.register(say_hello)
@@ -162,7 +139,6 @@ def test_fetch_log():
             "task_name": "say_hello",
             "args": [],
             "kwargs": {},
-            "job_type": "local",
         }
     )
     assert resp.status_code == 200
@@ -174,15 +150,17 @@ def test_fetch_log():
     assert resp.json()['content'] == "hello\n"
 
 
-@pytest.mark.order(9)
 def test_remove_job():
+    @task_table.register
+    def mul_2(a, b):
+        return a * b
+
     resp = client.post(
         f"/task/call",
         json={
             "task_name": "mul_2",
             "args": [1, 2],
             "kwargs": {},
-            "job_type": "thread",
         }
     )
     assert resp.status_code == 200
@@ -195,15 +173,18 @@ def test_remove_job():
     assert job_id not in job_ids
 
 
-@pytest.mark.order(10)
 def test_job_condition():
+    @task_table.register
+    @task(job_type="local")
+    def mul_3(a, b, c):
+        return a * b * c
+
     resp = client.post(
         "/task/call",
         json={
-            "task_name": "mul",
-            "args": [40, 2],
+            "task_name": "mul_3",
+            "args": [40, 2, 1],
             "kwargs": {},
-            "job_type": "local",
         }
     )
     assert resp.status_code == 200
@@ -211,10 +192,9 @@ def test_job_condition():
     resp = client.post(
         "task/call",
         json={
-            "task_name": "mul",
-            "args": [21, 2],
+            "task_name": "mul_3",
+            "args": [21, 2, 1],
             "kwargs": {},
-            "job_type": "local",
             "condition": {
                 "type": "AfterAnother",
                 "arguments": {
@@ -228,3 +208,35 @@ def test_job_condition():
     resp = client.get(f"/job/result/{job_id}")
     assert resp.status_code == 200
     assert resp.json()['result'] == 42
+
+
+def test_subprocess_job():
+    task_table.register(Task("python -c 'print({a} + {b})'", name="cmd_add"))
+    resp = client.post(
+        "/task/call",
+        json={
+            "task_name": "cmd_add",
+            "args": [],
+            "kwargs": {
+                "a": 1,
+                "b": 2,
+            }
+        }
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    time.sleep(2)
+    resp = client.get(f"/job/stdout/{job_id}")
+    assert resp.status_code == 200
+    assert resp.json()['content'] == "3\n\n"
+    resp = client.post(
+        "/task/call",
+        json={
+            "task_name": "cmd_add",
+            "args": [],
+            "kwargs": {
+                "a": 1,
+            }
+        }
+    )
+    assert resp.status_code == 400

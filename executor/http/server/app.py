@@ -18,7 +18,6 @@ def create_app() -> FastAPI:
         return {
             'allowed_routers': config.allowed_routers,
             'monitor_mode': config.monitor_mode,
-            'valid_job_types': config.valid_job_types,
         }
 
     if config.monitor_mode:
@@ -52,7 +51,6 @@ def run_server(
         port: int = 5000,
         log_level: str = "info",
         frontend_addr: str = "127.0.0.1:5173",
-        valid_job_types: OptionStrList = None,
         working_dir: T.Optional[T.Union[str, Path]] = ".",
         allowed_routers: OptionStrList = None,
         monitor_mode: T.Optional[bool] = None,
@@ -72,8 +70,6 @@ def run_server(
 
     if frontend_addr not in config.origins:
         config.origins.append(frontend_addr)
-    if valid_job_types is not None:
-        config.valid_job_types = parse_str_or_list(valid_job_types)
     if allowed_routers is not None:
         config.allowed_routers = parse_str_or_list(allowed_routers)
     if working_dir is not None:
