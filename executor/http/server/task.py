@@ -22,20 +22,23 @@ class Task(object):
             self.target = command
             self.name = name or command.name
             self.args = self.get_command_args(command)
+            if not description:
+                description = f"Run command: {target}"
         else:
             self.target = target
             func: T.Callable = target
             self.name = name or func.__name__
+            self.args = self.get_func_args(func)
             if not description:
                 if hasattr(func, "__doc__") and (func.__doc__ is not None):
                     description = func.__doc__
-            self.description = description
-            self.args = self.get_func_args(func)
         if job_type is None:
             if isinstance(self.target, Command):
                 job_type = "subprocess"
             else:
                 job_type = "process"
+
+        self.description = description
         self.job_type = job_type
         if isinstance(self.target, Command):
             if self.job_type not in ("subprocess", "webapp"):

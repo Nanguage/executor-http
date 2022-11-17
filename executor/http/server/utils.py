@@ -37,12 +37,11 @@ jobtype_classes: T.Dict[JobType, T.Type[Job]] = {
     "webapp": WebAppJob,
 }
 
+_class_name_to_jobtype = {v.__name__: k for k, v in jobtype_classes.items()}
+
 
 def job_to_jobtype(job: Job) -> JobType:
-    for job_type, cls in jobtype_classes.items():
-        if isinstance(job, cls):
-            return job_type
-    return "process"
+    return _class_name_to_jobtype[type(job).__name__]
 
 
 def ser_job(job: Job) -> dict:
@@ -65,6 +64,7 @@ def ser_job(job: Job) -> dict:
         'created_time': format_datetime(job.created_time),
         'submit_time': format_datetime(job.submit_time),
         'stoped_time': format_datetime(job.stoped_time),
+        'attrs': job.attrs,
     }
 
 
