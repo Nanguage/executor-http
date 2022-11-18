@@ -1,4 +1,5 @@
 import time
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from fastapi.testclient import TestClient
 import pytest
@@ -21,7 +22,6 @@ def test_register_task():
 
     task_1 = Task(square, job_type="process")
     task_table.register(task_1)
-
 
 
 @pytest.mark.order(1)
@@ -240,3 +240,32 @@ def test_subprocess_job():
         }
     )
     assert resp.status_code == 400
+
+
+def test_webapp_job():
+    @task_table.register
+    @task(job_type="webapp")
+    def simple_httpd(ip, port):
+        server_addr = (ip, port)
+        httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
+        httpd.serve_forever()
+
+    task_table.register(Task("python -m http.server -b {ip} {port}", job_type="webapp", name="simple_httpd_cmd"))
+
+    for task_name in ('simple_httpd', 'simple_httpd_cmd'):
+        resp = client.post(
+            "/task/call",
+            json={
+                "task_name": task_name,
+                "args": [],
+                "kwargs": {},
+            }
+        )
+        assert resp.status_code == 200
+        job_id = resp.json()['id']
+        time.sleep(5)
+        resp = client.get(f"/job/status/{job_id}")
+        assert resp.status_code == 200
+        assert resp.json()['status'] == "running"
+        resp = client.get(f"/job/cancel/{job_id}")
+        assert resp.status_code == 200

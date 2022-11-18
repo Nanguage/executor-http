@@ -3,6 +3,7 @@ import functools
 
 from oneface.arg import parse_func_args, Empty
 from executor.engine.job import Job
+from executor.engine.job.extend import WebAppJob
 from executor.engine.job.condition import Condition
 
 from .utils import JobType, jobtype_classes, Command, print_error
@@ -38,6 +39,10 @@ class Task(object):
             else:
                 job_type = "process"
 
+        if job_type == "webapp":
+            # not provide ip and port option for user
+            self.args = []
+
         self.description = description
         self.job_type = job_type
         if isinstance(self.target, Command):
@@ -46,8 +51,6 @@ class Task(object):
         self.attrs = kwargs
 
     def create_job(self, args: T.Tuple, kwargs: T.Dict, condition: Condition) -> Job:
-        job_cls: T.Type[Job] = jobtype_classes[self.job_type]
-
         job_kwargs = {
             "callback": None,
             "error_callback": print_error,
@@ -56,8 +59,12 @@ class Task(object):
             "condition": condition,
         }
 
+        job_cls: T.Type[Job] = jobtype_classes[self.job_type]
         if isinstance(self.target, Command):
-            cmd = self.target.format(kwargs)
+            if self.job_type == "webapp":
+                cmd = self.target.template
+            else:
+                cmd = self.target.format(kwargs)
             job = job_cls(cmd, **job_kwargs)
         else:
             job = job_cls(self.target, args=args, kwargs=kwargs, **job_kwargs)
