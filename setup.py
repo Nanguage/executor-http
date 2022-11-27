@@ -42,7 +42,7 @@ def get_install_requires():
     return requirements
 
 
-requires_test = ['pytest', 'pytest-cov', 'flake8', 'pytest-order', 'mypy']
+requires_test = ['pytest', 'pytest-cov', 'flake8', 'pytest-order', 'mypy', 'httpx']
 
 
 setup(
