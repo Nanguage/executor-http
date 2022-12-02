@@ -19,6 +19,7 @@ allowed_routers = [
     "job",
     "file",
     "task",
+    "proxy",
 ]
 
 monitor_mode = False

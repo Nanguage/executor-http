@@ -32,6 +32,11 @@ def create_app() -> FastAPI:
         if 'file' in config.allowed_routers:
             app.include_router(file.router)
 
+    if 'proxy' in config.allowed_routers:
+        from .routers import proxy
+        app.include_router(proxy.router)
+        #app.add_route("/{path:path}", proxy.root_dispatch, ["GET", "POST"])
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.origins,

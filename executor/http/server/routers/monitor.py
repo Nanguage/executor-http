@@ -1,20 +1,14 @@
-import typing as T
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 
-from executor.engine.manager import Jobs
 from executor.engine.job import Job
 
 from .. import config
-from ..utils import ser_job
+from ..utils import ser_job, get_jobs
 
-if config.monitor_cache_path is not None:
-    cache_path = Path(config.monitor_cache_path)
-    jobs = Jobs(cache_path / "jobs")
-else:
-    raise ValueError("Monitor cache path is not provided, please set it in config.")
 
 router = APIRouter(prefix="/monitor")
+jobs = get_jobs()
 
 
 @router.get("/list_all")

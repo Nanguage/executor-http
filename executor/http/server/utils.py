@@ -3,6 +3,7 @@ import sys
 import traceback
 import typing as T
 from datetime import datetime
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -11,6 +12,9 @@ from executor.engine.job.extend import SubprocessJob, WebAppJob
 from executor.engine.job.condition import (
     AfterAnother, AfterOthers, AfterTimepoint, AllSatisfied, AnySatisfied,
 )
+from executor.engine.manager import Jobs
+
+from . import config
 
 
 class ConditionType(BaseModel):
@@ -53,6 +57,10 @@ def ser_job(job: Job) -> dict:
     else:
         cond_dict = None
 
+    if 'proxy' in config.allowed_routers:
+        if 'address' in job.attrs:
+            job.attrs.pop('address')
+
     return {
         'id': job.id,
         'name': job.name,
@@ -92,7 +100,19 @@ class Command(object):
         return cmd
 
 
-
 def print_error(err):
     traceback.print_exc(file=sys.stderr)
     print(err, file=sys.stderr)
+
+
+def get_jobs() -> Jobs:
+    if config.monitor_mode:
+        if config.monitor_cache_path is not None:
+            cache_path = Path(config.monitor_cache_path)
+            jobs = Jobs(cache_path / "jobs")
+        else:
+            raise ValueError("Monitor cache path is not provided, please set it in config.")
+    else:
+        from .instance import engine
+        jobs = engine.jobs
+    return jobs
