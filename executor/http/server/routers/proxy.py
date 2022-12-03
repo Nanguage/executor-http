@@ -20,6 +20,12 @@ def get_client(base_url: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(base_url=base_url)
 
 
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
 async def _reverse_proxy(job_id: str, request: Request):
     job = jobs.get_job_by_id(job_id)
     if job is None:
@@ -37,7 +43,7 @@ async def _reverse_proxy(job_id: str, request: Request):
     address = f"http://{job.ip}:{job.port}"
     client = get_client(address)
     path_prefix = f"/proxy/app/{job_id}/"
-    path = request.url.path.lstrip(path_prefix)
+    path = remove_prefix(request.url.path, path_prefix)
     url = httpx.URL(path=path, query=request.url.query.encode("utf-8"))
     req = client.build_request(
         request.method, url, headers=request.headers.raw,
