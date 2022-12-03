@@ -43,7 +43,16 @@ async def _reverse_proxy(job_id: str, request: Request):
         request.method, url, headers=request.headers.raw,
         content=await request.body()
     )
-    resp = await client.send(req, stream=True)
+    count = 5  # max try
+    while count - 1 > 0:
+        try:
+            resp = await client.send(req, stream=True)
+            break
+        except httpx.ConnectError:
+            pass
+        count -= 1
+    else:
+        resp = await client.send(req, stream=True)
     if resp.status_code == status.HTTP_307_TEMPORARY_REDIRECT:
         return RedirectResponse(
             path_prefix+resp.headers['location'], headers=resp.headers)

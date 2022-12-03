@@ -5,10 +5,12 @@ from fastapi.testclient import TestClient
 import pytest
 
 from executor.http.server.app import create_app
-from executor.http.server.config import task_table
+from executor.http.server import config
 from executor.http.server.task import Task, task
 
 
+config.allowed_routers = ["task", "job", "file", "proxy"]
+task_table = config.task_table
 app = create_app()
 
 

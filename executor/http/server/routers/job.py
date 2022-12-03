@@ -1,7 +1,10 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 
 from executor.engine.job.utils import InvalidStateError, JobEmitError
 from executor.engine.job import Job
+from executor.engine.job.base import JobStatusType
 
 from ..utils import ser_job
 from ..instance import engine
@@ -92,6 +95,26 @@ async def wait_job_result(job_id: str):
             status.HTTP_400_BAD_REQUEST,
             detail="Job can not fetch result",
         )
+
+
+class WaitRequest(BaseModel):
+    job_id: str
+    status: JobStatusType
+    time_delta: float = 0.1
+
+
+@router.post("/wait")
+async def wait(req: WaitRequest):
+    job = engine.jobs.get_job_by_id(req.job_id)
+    if job is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Job not found")
+    while True:
+        if job.status == req.status:
+            break
+        await asyncio.sleep(req.time_delta)
+    return ser_job(job)
 
 
 def _read_then_return(job_id: str, fname: str):

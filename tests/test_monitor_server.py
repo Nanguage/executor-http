@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
@@ -7,6 +8,7 @@ from executor.http.server import config
 from executor.engine import Engine, LocalJob, ThreadJob, ProcessJob
 
 
+@pytest.mark.order(-2)
 def test_list_all():
     engine = Engine()
 
@@ -18,6 +20,7 @@ def test_list_all():
         await engine.wait()
 
     asyncio.run(submit_job())
+    config.allowed_routers = []
     config.monitor_mode = True
     config.monitor_cache_path = engine.cache_dir
 
@@ -27,6 +30,7 @@ def test_list_all():
     assert len(resp.json()) == 3
 
 
+@pytest.mark.order(-1)
 def test_fetch_log():
     def say_hello():
         print("hello")
