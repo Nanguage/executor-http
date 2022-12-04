@@ -20,7 +20,7 @@ def get_client(base_url: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(base_url=base_url)
 
 
-def remove_prefix(text, prefix):
+def remove_prefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
@@ -63,6 +63,8 @@ async def _reverse_proxy(job_id: str, request: Request):
         return RedirectResponse(
             path_prefix+resp.headers['location'], headers=resp.headers)
     headers = req.headers.copy()
+    if 'content-length' in headers:
+        headers.pop('content-length')
     headers['Set-Cookie'] = f'proxy_job="{job_id}"; Path=/'
     return StreamingResponse(
         resp.aiter_raw(),
@@ -87,7 +89,7 @@ async def root_dispatch(request: Request):
     if 'Cookie' in headers:
         cookie = headers['Cookie']
         if 'proxy_job' in cookie:
-            match = re.match('proxy_job="(.*?)"', cookie)
+            match = re.match('.*proxy_job="(.*?)"', cookie)
             if match is not None:
                 job_id = match.groups()[0]
                 return await _reverse_proxy(job_id, request)

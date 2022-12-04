@@ -35,7 +35,8 @@ def create_app() -> FastAPI:
     if 'proxy' in config.allowed_routers:
         from .routers import proxy
         app.include_router(proxy.router)
-        #app.add_route("/{path:path}", proxy.root_dispatch, ["GET", "POST"])
+        app.get("/{path:path}")(proxy.root_dispatch)
+        app.post("/{path:path}")(proxy.root_dispatch)
 
     app.add_middleware(
         CORSMiddleware,
