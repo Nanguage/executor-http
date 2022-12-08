@@ -3,7 +3,6 @@ import functools
 
 from oneface.arg import parse_func_args, Empty
 from executor.engine.job import Job
-from executor.engine.job.extend import WebAppJob
 from executor.engine.job.condition import Condition
 
 from .utils import JobType, jobtype_classes, Command, print_error
@@ -122,7 +121,6 @@ def task(
     if target is None:
         return functools.partial(task, name=name, description=description, job_type=job_type)
     return Task(target, name=name, description=description, job_type=job_type)
-
 
 
 class TaskTable(object):

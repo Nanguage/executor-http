@@ -24,3 +24,6 @@ allowed_routers = [
 
 monitor_mode = False
 monitor_cache_path: T.Optional[T.Union[str, Path]] = None
+
+user_mode: T.Literal["free", "mono", "hub"] = "hub"
+user_database_url = "sqlite:///./user.db"
