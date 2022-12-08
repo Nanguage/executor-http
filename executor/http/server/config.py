@@ -1,3 +1,4 @@
+import os
 import typing as T
 from pathlib import Path
 
@@ -25,5 +26,13 @@ allowed_routers = [
 monitor_mode = False
 monitor_cache_path: T.Optional[T.Union[str, Path]] = None
 
-user_mode: T.Literal["free", "mono", "hub"] = "hub"
+user_mode: T.Literal["free", "mono", "hub"] = "free"
 user_database_url = "sqlite:///./user.db"
+root_password = os.environ.get("EXECUTOR_ROOT_PASSWORD")
+
+# Secret key for JSON Web Token
+# Generate using command: openssl rand -hex 32
+jwt_secret_key = "91bdbf71b350475384409cef5e2103a859033f067bafbeda7467ed88d79b0e04"
+jwt_algorithm = "HS256"
+
+access_token_expire_minutes = 30
