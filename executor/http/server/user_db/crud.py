@@ -3,7 +3,30 @@ import typing as T
 
 from sqlalchemy.orm import Session
 
-from . import models, schemas, utils
+from . import models, schemas, utils, database
+from .. import config
+
+
+def init_db():
+    models.Base.metadata.create_all(bind=database.engine)
+    db = database.SessionLocal()
+    init_users(db)
+
+
+def init_users(db: Session) -> T.Optional[models.User]:
+    root_password = config.root_password
+    if root_password is None:
+        return None
+    root = get_user_by_username(db, "root")
+    if root is None:
+        create = schemas.UserCreate(
+            username="root", role="root", password=root_password)
+        create_user(db, create)
+    else:
+        root.hashed_password = utils.get_hashed_password(root_password)
+        db.commit()
+        db.refresh(root)
+    return root
 
 
 def get_user_by_username(db: Session, username: str) -> T.Optional[models.User]:

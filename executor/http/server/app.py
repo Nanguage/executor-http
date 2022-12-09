@@ -20,17 +20,23 @@ def create_app() -> FastAPI:
             'monitor_mode': config.monitor_mode,
         }
 
+    if config.user_mode != "free":
+        from .user_db.crud import init_db
+        init_db()
+
     if config.monitor_mode:
         from .routers import monitor
         app.include_router(monitor.router)
     else:
-        from .routers import job, task, file
+        from .routers import job, task, file, user
         if 'job' in config.allowed_routers:
             app.include_router(job.router)
         if 'task' in config.allowed_routers:
             app.include_router(task.router)
         if 'file' in config.allowed_routers:
             app.include_router(file.router)
+        if 'user' in config.allowed_routers:
+            app.include_router(user.router)
 
     if 'proxy' in config.allowed_routers:
         from .routers import proxy

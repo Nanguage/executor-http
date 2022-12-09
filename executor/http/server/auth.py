@@ -12,7 +12,7 @@ from . import config
 
 
 token_getter: T.Callable
-if config.user_mode == "hub":
+if config.user_mode != "free":
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
     token_getter = oauth2_scheme
 else:
@@ -20,7 +20,7 @@ else:
 
 
 def get_db():
-    if config.user_mode == "hub":
+    if config.user_mode != "free":
         db = SessionLocal()
         try:
             yield db
@@ -34,7 +34,7 @@ def get_current_user(
         token: str = Depends(token_getter),
         db: Session = Depends(get_db),
         ) -> T.Optional[schemas.User]:
-    if config.user_mode == "hub":
+    if config.user_mode != "free":
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials.",
