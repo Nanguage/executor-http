@@ -2,18 +2,22 @@ import os
 from pathlib import Path
 import shutil
 
+import pytest
 from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
+from executor.http.server import config
 
 
-app = create_app()
+@pytest.fixture
+def client() -> TestClient:
+    config.allowed_routers = ["file"]
+    app = create_app()
+    client = TestClient(app)
+    return client
 
 
-client = TestClient(app)
-
-
-def test_list_dir():
+def test_list_dir(client: TestClient):
     resp = client.post(
         "/file/list_dir",
         json={
@@ -37,7 +41,7 @@ def test_list_dir():
     assert resp.status_code == 403
 
 
-def test_download_file():
+def test_download_file(client: TestClient):
     test_file = "for_download.txt"
     with open(test_file, 'w') as f:
         f.write("123")
@@ -46,7 +50,7 @@ def test_download_file():
     os.remove(test_file)    
 
 
-def test_upload_file():
+def test_upload_file(client: TestClient):
     test_file = "for_upload.txt"
     with open(test_file, 'w') as f:
         f.write("123")
@@ -65,7 +69,7 @@ def test_upload_file():
     os.remove(test_file)
 
 
-def test_delete_files():
+def test_delete_files(client: TestClient):
     files_for_delete = ["a.txt", "b.txt"]
     for fname in files_for_delete:
         with open(fname, 'w') as f:
@@ -74,7 +78,7 @@ def test_delete_files():
         "/file/delete", json={"paths": files_for_delete})
     assert resp.status_code == 200
     assert all([not Path(f).exists() for f in files_for_delete])
-    dirs_for_delete = ["a/", "b/"]
+    dirs_for_delete = ["test_dir1/", "test_dir2/"]
     for d in dirs_for_delete:
         os.mkdir(d)
         with open(d+"/a", 'w') as f:
@@ -85,12 +89,12 @@ def test_delete_files():
     assert all([not Path(f).exists() for f in dirs_for_delete])
 
 
-def test_move_files():
+def test_move_files(client: TestClient):
     files_for_move = ["a.txt", "b.txt"]
     for fname in files_for_move:
         with open(fname, 'w') as f:
             f.write("111")
-    dest_dir = "a/"
+    dest_dir = "test_dest_dir1/"
     os.mkdir(dest_dir)
     resp = client.post(
         "/file/move",

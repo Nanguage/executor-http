@@ -6,28 +6,33 @@ import pytest
 
 from executor.http.server.app import create_app
 from executor.http.server import config
-from executor.http.server.task import Task, task
+from executor.http.server.task import Task, task, TaskTable
 
 
-config.allowed_routers = ["task", "job", "file", "proxy"]
-task_table = config.task_table
-app = create_app()
+@pytest.fixture
+def client() -> TestClient:
+    config.allowed_routers = ["task", "job", "file", "proxy"]
+    app = create_app()
+    client = TestClient(app)
+    return client
 
 
-client = TestClient(app)
+@pytest.fixture
+def task_table() -> TaskTable:
+    task_table = config.task_table
+    task_table.table.clear()
+    return task_table
 
 
-@pytest.mark.order(0)
-def test_register_task():
+def test_task_reg_and_call(client: TestClient, task_table: TaskTable):
+    # test register
     def square(x: int):
         return x ** 2
 
     task_1 = Task(square, job_type="process")
     task_table.register(task_1)
 
-
-@pytest.mark.order(1)
-def test_list_tasks():
+    # test list tasks
     resp = client.get("/task/list_all")
     assert resp.status_code == 200
     assert 'square' in [
@@ -41,9 +46,7 @@ def test_list_tasks():
     assert t['args'][0]['default'] == None
     assert t['args'][0]['range'] == None
 
-
-@pytest.mark.order(3)
-def test_call_task():
+    # test call task
     resp = client.post(
         "/task/call",
         json={
@@ -55,15 +58,13 @@ def test_call_task():
     assert resp.status_code == 200
     assert 'id' in resp.json()
 
-
-@pytest.mark.order(4)
-def test_get_all_jobs():
+    # test list jobs
     resp = client.get("/job/list_all")
     assert resp.status_code == 200
     assert len(resp.json()) == 1
 
 
-def test_cancel_and_rerun_job():
+def test_cancel_and_rerun_job(client: TestClient, task_table: TaskTable):
     def add(x, y):
         time.sleep(1)
         return x + y
@@ -90,7 +91,7 @@ def test_cancel_and_rerun_job():
     assert resp.json()['status'] == "pending"
 
 
-def test_get_job_result():
+def test_get_job_result(client: TestClient, task_table: TaskTable):
     @task_table.register
     @task(job_type="local")
     def mul(x, y):
@@ -112,7 +113,7 @@ def test_get_job_result():
     assert resp.json()['result'] == 80
 
 
-def test_errors():
+def test_errors(client: TestClient):
     fake_job_id = "fake"
     for mth in ["status", "cancel", "re_run"]:
         resp = client.get(f"/job/{mth}/{fake_job_id}")
@@ -130,7 +131,7 @@ def test_errors():
     assert resp.status_code == 400
 
 
-def test_fetch_log():
+def test_fetch_log(client: TestClient, task_table: TaskTable):
     @task(job_type="local")
     def say_hello():
         print("hello")
@@ -152,7 +153,7 @@ def test_fetch_log():
     assert resp.json()['content'] == "hello\n"
 
 
-def test_remove_job():
+def test_remove_job(client: TestClient, task_table: TaskTable):
     @task_table.register
     def mul_2(a, b):
         return a * b
@@ -175,7 +176,7 @@ def test_remove_job():
     assert job_id not in job_ids
 
 
-def test_job_condition():
+def test_job_condition(client: TestClient, task_table: TaskTable):
     @task_table.register
     @task(job_type="local")
     def mul_3(a, b, c):
@@ -212,7 +213,7 @@ def test_job_condition():
     assert resp.json()['result'] == 42
 
 
-def test_subprocess_job():
+def test_subprocess_job(client: TestClient, task_table: TaskTable):
     task_table.register(Task("python -c 'print({a} + {b})'", name="cmd_add"))
     resp = client.post(
         "/task/call",
@@ -244,7 +245,7 @@ def test_subprocess_job():
     assert resp.status_code == 400
 
 
-def test_webapp_job():
+def test_webapp_job(client: TestClient, task_table: TaskTable):
     @task_table.register
     @task(job_type="webapp")
     def simple_httpd(ip, port):
