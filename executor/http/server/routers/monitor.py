@@ -8,11 +8,11 @@ from ..utils import ser_job, get_jobs
 
 
 router = APIRouter(prefix="/monitor")
-jobs = get_jobs()
 
 
 @router.get("/list_all")
 async def get_all_jobs_from_cache():
+    jobs = get_jobs()
     try:
         jobs.update_from_cache()
     except Exception as e:

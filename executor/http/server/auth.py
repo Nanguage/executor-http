@@ -74,3 +74,13 @@ def create_access_token(
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, config.jwt_secret_key, config.jwt_algorithm)
     return encoded_jwt
+
+
+def reload():
+    """Reload for switch user-mode."""
+    import importlib
+    from . import auth
+    from .routers import file, job, monitor, proxy, task
+    modules = [auth, file, job, monitor, proxy, task]
+    for mod in modules:
+        importlib.reload(mod)
