@@ -13,9 +13,12 @@ class Login(BaseModel):
         orm_mode = True
 
 
+Roles = T.Literal["root", "admin", "user"]
+
+
 class UserBase(BaseModel):
     username: str
-    role: str
+    role: Roles
 
 
 class User(UserBase):

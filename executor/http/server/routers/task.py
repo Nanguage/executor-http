@@ -1,10 +1,12 @@
 import typing as T
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from ..config import task_table
 from ..instance import engine
 from ..utils import ConditionType, ser_job
+from ..auth import get_current_user
+from ..user_db.schemas import User
 
 
 router = APIRouter(prefix="/task")
@@ -18,7 +20,9 @@ class CallRequest(BaseModel):
 
 
 @router.post("/call")
-async def call(req: CallRequest):
+async def call(
+        req: CallRequest,
+        user: T.Optional[User] = Depends(get_current_user)):
     try:
         task = task_table[req.task_name]
     except KeyError:
@@ -43,10 +47,12 @@ async def call(req: CallRequest):
             status.HTTP_400_BAD_REQUEST,
             detail=f"Error when create job: {str(e)}",
         )
+    if user is not None:
+        job.attrs['user'] = user.username
     await engine.submit(job)
     return ser_job(job)
 
 
 @router.get("/list_all")
-async def get_task_list():
+async def get_task_list(user: T.Optional[User] = Depends(get_current_user)):
     return [t.to_dict() for t in task_table.table.values()]
