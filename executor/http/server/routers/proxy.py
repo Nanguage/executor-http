@@ -1,14 +1,17 @@
+import typing as T
 import re
 import functools
 
 import httpx
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import StreamingResponse, RedirectResponse
 from starlette.background import BackgroundTask
 
 from executor.engine.job.extend import WebAppJob
 
 from ..utils import get_jobs
+from ..auth import get_current_user
+from ..user_db.schemas import User
 
 
 router = APIRouter(prefix="/proxy")
@@ -75,12 +78,16 @@ async def _reverse_proxy(job_id: str, request: Request):
 
 
 @router.get("/app/{job_id}/{path:path}")
-async def proxy_get(job_id: str, request: Request):
+async def proxy_get(
+        job_id: str, request: Request,
+        user: T.Optional[User] = Depends(get_current_user)):
     return await _reverse_proxy(job_id, request)
 
 
 @router.post("/app/{job_id}/{path:path}")
-async def proxy_post(job_id: str, request: Request):
+async def proxy_post(
+        job_id: str, request: Request,
+        user: T.Optional[User] = Depends(get_current_user)):
     return await _reverse_proxy(job_id, request)
 
 

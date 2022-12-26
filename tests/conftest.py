@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from executor.http.server.app import create_app
 from executor.http.server import config
 from executor.http.server import auth
+from executor.http.server.task import TaskTable
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -21,7 +22,7 @@ def pytest_sessionfinish(session, exitstatus):
 @pytest.fixture(params=["free", "hub"])
 def client(request) -> TestClient:
     mode = request.param
-    routers_for_test = ["job", "task", "file"]
+    routers_for_test = ["job", "task", "file", "proxy"]
     if mode == "free":
         config.user_mode = "free"
         config.allowed_routers = routers_for_test
@@ -61,3 +62,10 @@ def base_path(client: TestClient) -> Path:
         return Path(".")
     else:
         return Path("root/")
+
+
+@pytest.fixture
+def task_table() -> TaskTable:
+    task_table = config.task_table
+    task_table.table.clear()
+    return task_table

@@ -3,18 +3,8 @@ import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 from fastapi.testclient import TestClient
-import pytest
 
-from executor.http.server.app import create_app
-from executor.http.server import config
 from executor.http.server.task import Task, task, TaskTable
-
-
-@pytest.fixture
-def task_table() -> TaskTable:
-    task_table = config.task_table
-    task_table.table.clear()
-    return task_table
 
 
 def test_task_reg_and_call(
