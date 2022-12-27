@@ -1,4 +1,6 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Time
+import typing as T
+
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -11,7 +13,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String)
-    logins = relationship("Login", back_populates="user")
+    logins: T.List["Login"] = relationship("Login", back_populates="user")
 
 
 class Login(Base):
@@ -19,6 +21,6 @@ class Login(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User", back_populates="logins")
-    time = Column(Time)
+    user: "User" = relationship("User", back_populates="logins")
+    time = Column(DateTime)
 

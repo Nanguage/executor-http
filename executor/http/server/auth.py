@@ -50,7 +50,9 @@ def get_current_user(
         user = crud.get_user_by_username(db, username)
         if user is None:
             raise credentials_exception
-        return user
+        return schemas.User(
+            username=user.username, role=user.role, id=user.id,
+        )
     else:
         return None
 
@@ -62,7 +64,10 @@ def auth_user(
     user = crud.get_user_by_username(db, username)
     if user is None:
         return False
-    if not utils.verify_password(password, user.hashed_password):
+    hashed = user.hashed_password
+    if hashed is None:
+        return False
+    if not utils.verify_password(password, hashed):
         return False
     return user
 

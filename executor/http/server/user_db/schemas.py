@@ -23,8 +23,6 @@ class UserBase(BaseModel):
 
 class User(UserBase):
     id: int
-    hashed_password: str
-    logins: T.List[Login] = []
 
     class Config:
         orm_mode = True
