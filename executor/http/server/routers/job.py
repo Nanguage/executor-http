@@ -138,7 +138,7 @@ async def wait_job_result(
 
 class WaitRequest(BaseModel):
     job_id: str
-    status: JobStatusType
+    status: JobStatusType = "done"
     time_delta: float = 0.1
 
 
