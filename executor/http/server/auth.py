@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
-from .user_db.database import SessionLocal
+from .user_db.database import SessionAsync
 from .user_db import schemas, crud, models, utils
 from . import config
 
@@ -19,20 +19,20 @@ else:
     token_getter = lambda: "fake_token"
 
 
-def get_db():
+async def get_db():
     if config.user_mode != "free":
-        db = SessionLocal()
+        db = SessionAsync()
         try:
             yield db
         finally:
-            db.close()
+            await db.close()
     else:
         yield None
 
 
-def get_current_user(
+async def get_current_user(
         token: str = Depends(token_getter),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
         ) -> T.Optional[schemas.User]:
     if config.user_mode != "free":
         credentials_exception = HTTPException(
@@ -47,7 +47,7 @@ def get_current_user(
                 raise credentials_exception
         except JWTError:
             raise credentials_exception
-        user = crud.get_user_by_username(db, username)
+        user = await crud.get_user_by_username(db, username)
         if user is None:
             raise credentials_exception
         return schemas.User(
@@ -57,11 +57,11 @@ def get_current_user(
         return None
 
 
-def auth_user(
-        db: Session,
+async def auth_user(
+        db: AsyncSession,
         username: str, password: str,
         ) -> T.Union[T.Literal[False], models.User]:
-    user = crud.get_user_by_username(db, username)
+    user = await crud.get_user_by_username(db, username)
     if user is None:
         return False
     hashed = user.hashed_password
