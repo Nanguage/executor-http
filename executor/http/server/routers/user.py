@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..user_db.schemas import Token
 from ..auth import get_db, auth_user, create_access_token
+from ..user_db import crud
 
 router = APIRouter(prefix="/user")
 
@@ -19,5 +20,8 @@ async def login(
             detail="Incorrect username or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if user.id is not None:
+        crud.create_user_login(db, user.id)
+        db.commit()
     access_token = create_access_token(user.username)
     return Token(access_token=access_token)
