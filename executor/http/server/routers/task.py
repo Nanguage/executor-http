@@ -48,7 +48,7 @@ async def call(
             detail=f"Error when create job: {str(e)}",
         )
     if user is not None:
-        job.attrs['user'] = user.username
+        job.attrs['user'] = user
     await engine.submit(job)
     return ser_job(job)
 

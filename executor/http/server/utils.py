@@ -116,3 +116,14 @@ def get_jobs() -> Jobs:
         from .instance import engine
         jobs = engine.jobs
     return jobs
+
+
+def reload_routers():
+    """Reload router modules
+    for switch user-mode / reload engine."""
+    import importlib
+    from . import auth
+    from .routers import file, job, monitor, proxy, task
+    modules = [auth, file, job, monitor, proxy, task]
+    for mod in modules:
+        importlib.reload(mod)

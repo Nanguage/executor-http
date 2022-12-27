@@ -1,5 +1,6 @@
 import typing as T
 import asyncio
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
@@ -10,24 +11,32 @@ from executor.engine.job.base import JobStatusType
 from ..utils import ser_job
 from ..instance import engine
 from ..auth import get_current_user
-from ..user_db.schemas import User
+from ..user_db.schemas import User, role_priority_over
 
 
 router = APIRouter(prefix="/job")
+
+
+def user_can_access(user: User, job: Job) -> bool:
+    job_user: T.Optional[User] = job.attrs.get("user")
+    if job_user is not None:
+        if user.username == job_user.username:
+            return True
+        if role_priority_over(user.role, job_user.role):
+            return True
+    return False
 
 
 def check_user_job(user: T.Optional[User], job: Job) -> Job:
     if user is None:
         return job
     else:
-        job_user = job.attrs.get("user")
-        if user.username == job_user:
+        if user_can_access(user, job):
             return job
-        else:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                detail="Can't access to the job."
-            )
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Can't access to the job."
+        )
 
 
 @router.get("/status/{job_id}")
@@ -52,7 +61,7 @@ async def get_all_jobs(user: T.Optional[User] = Depends(get_current_user)):
     if user is None:
         jobs = all_jobs
     else:
-        jobs = (j for j in all_jobs if j.attrs.get('user') == user.username)
+        jobs = (j for j in all_jobs if user_can_access(user, j))
     for job in jobs:
         resp.append(ser_job(job))
     return resp

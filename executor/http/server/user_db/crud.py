@@ -19,7 +19,7 @@ def init_users(db: Session) -> T.Optional[models.User]:
     root_password = config.root_password
     if root_password is None:
         return None
-    root = _get_user_by_username_sync(db, "root")
+    root = get_user_by_username_sync(db, "root")
     if root is None:
         create = schemas.UserCreate(
             username="root", role="root", password=root_password)
@@ -31,7 +31,7 @@ def init_users(db: Session) -> T.Optional[models.User]:
     return root
 
 
-def _get_user_by_username_sync(db: Session, username: str) -> T.Optional[models.User]:
+def get_user_by_username_sync(db: Session, username: str) -> T.Optional[models.User]:
     return db.query(models.User).filter(models.User.username == username).first()
 
 

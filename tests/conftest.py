@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
 from executor.http.server import config
-from executor.http.server import auth
+from executor.http.server import utils
 from executor.http.server.task import TaskTable
 
 
@@ -26,12 +26,12 @@ def client(request) -> TestClient:
     if mode == "free":
         config.user_mode = "free"
         config.allowed_routers = routers_for_test
-        auth.reload()
+        utils.reload_routers()
     else:
         config.allowed_routers = routers_for_test + ["user"]
         config.user_mode = "hub"
         config.root_password = "123"
-        auth.reload()
+        utils.reload_routers()
     app = create_app()
     app.user_mode = mode
     client = TestClient(app)
