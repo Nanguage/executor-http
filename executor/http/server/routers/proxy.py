@@ -69,7 +69,6 @@ async def _reverse_proxy(job_id: str, request: Request, user: T.Optional[User]):
     headers = req.headers.copy()
     if 'content-length' in headers:
         headers.pop('content-length')
-    headers['Set-Cookie'] = f'proxy_job="{job_id}"; Path=/'
     return StreamingResponse(
         resp.aiter_raw(),
         status_code=resp.status_code,
@@ -94,10 +93,9 @@ async def proxy_post(
 
 async def root_dispatch(request: Request):
     headers = request.headers
-    if 'Cookie' in headers:
-        cookie = headers['Cookie']
-        if 'proxy_job' in cookie:
-            match = re.match('.*proxy_job="(.*?)"', cookie)
-            if match is not None:
-                job_id = match.groups()[0]
-                return await _reverse_proxy(job_id, request, None)
+    if 'referer' in headers:
+        referer = headers['referer']
+        match = re.match('.*/proxy/app/(.*?)/', referer)
+        if match is not None:
+            job_id = match.groups()[0]
+            return await _reverse_proxy(job_id, request, None)
