@@ -39,7 +39,7 @@ def test_proxy(
     )
     assert resp.status_code == 200
     assert 'address' not in resp.json()['attrs']
-    resp = client.get(f"/proxy/app/{job_id}", headers=headers)
+    resp = client.get(f"/proxy/app/{job_id}/", headers=headers)
     assert resp.status_code == 200
     resp = client.get(f"/job/cancel/{job_id}", headers=headers)
     assert resp.status_code == 200

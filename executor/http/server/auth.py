@@ -6,8 +6,11 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
+from executor.engine.job import Job
+
 from .user_db.database import SessionAsync
 from .user_db import schemas, crud, models, utils
+from .user_db.schemas import User, role_priority_over
 from . import config
 
 
@@ -79,3 +82,27 @@ def create_access_token(
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, config.jwt_secret_key, config.jwt_algorithm)
     return encoded_jwt
+
+
+
+def user_can_access(user: User, job: Job) -> bool:
+    job_user: T.Optional[User] = job.attrs.get("user")
+    if job_user is not None:
+        if user.username == job_user.username:
+            return True
+        if role_priority_over(user.role, job_user.role):
+            return True
+    return False
+
+
+def check_user_job(user: T.Optional[User], job: Job) -> Job:
+    if user is None:
+        return job
+    else:
+        if user_can_access(user, job):
+            return job
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Can't access to the job."
+        )
+

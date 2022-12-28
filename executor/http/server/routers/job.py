@@ -10,33 +10,12 @@ from executor.engine.job.base import JobStatusType
 
 from ..utils import ser_job
 from ..instance import engine
-from ..auth import get_current_user
-from ..user_db.schemas import User, role_priority_over
+from ..auth import get_current_user, check_user_job, user_can_access
+from ..user_db.schemas import User
 
 
 router = APIRouter(prefix="/job")
 
-
-def user_can_access(user: User, job: Job) -> bool:
-    job_user: T.Optional[User] = job.attrs.get("user")
-    if job_user is not None:
-        if user.username == job_user.username:
-            return True
-        if role_priority_over(user.role, job_user.role):
-            return True
-    return False
-
-
-def check_user_job(user: T.Optional[User], job: Job) -> Job:
-    if user is None:
-        return job
-    else:
-        if user_can_access(user, job):
-            return job
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Can't access to the job."
-        )
 
 
 @router.get("/status/{job_id}")

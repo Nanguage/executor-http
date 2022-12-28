@@ -10,7 +10,7 @@ from starlette.background import BackgroundTask
 from executor.engine.job.extend import WebAppJob
 
 from ..utils import get_jobs
-from ..auth import get_current_user
+from ..auth import get_current_user, check_user_job
 from ..user_db.schemas import User
 
 
@@ -29,7 +29,7 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text
 
 
-async def _reverse_proxy(job_id: str, request: Request):
+async def _reverse_proxy(job_id: str, request: Request, user: T.Optional[User]):
     job = jobs.get_job_by_id(job_id)
     if job is None:
         raise HTTPException(
@@ -43,6 +43,7 @@ async def _reverse_proxy(job_id: str, request: Request):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Job {job_id} is not running",)
+    job = check_user_job(user, job)
     address = f"http://{job.ip}:{job.port}"
     client = get_client(address)
     path_prefix = f"/proxy/app/{job_id}/"
@@ -81,14 +82,14 @@ async def _reverse_proxy(job_id: str, request: Request):
 async def proxy_get(
         job_id: str, request: Request,
         user: T.Optional[User] = Depends(get_current_user)):
-    return await _reverse_proxy(job_id, request)
+    return await _reverse_proxy(job_id, request, user)
 
 
 @router.post("/app/{job_id}/{path:path}")
 async def proxy_post(
         job_id: str, request: Request,
         user: T.Optional[User] = Depends(get_current_user)):
-    return await _reverse_proxy(job_id, request)
+    return await _reverse_proxy(job_id, request, user)
 
 
 async def root_dispatch(request: Request):
@@ -99,4 +100,4 @@ async def root_dispatch(request: Request):
             match = re.match('.*proxy_job="(.*?)"', cookie)
             if match is not None:
                 job_id = match.groups()[0]
-                return await _reverse_proxy(job_id, request)
+                return await _reverse_proxy(job_id, request, None)

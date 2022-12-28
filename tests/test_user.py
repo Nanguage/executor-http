@@ -1,10 +1,11 @@
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
 from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
 from executor.http.server.user_db import crud, database, models, schemas
 from executor.http.server import config
-from executor.http.server import auth
-from executor.http.server.task import TaskTable
+from executor.http.server.task import TaskTable, task
 from executor.http.server import instance
 
 
@@ -47,6 +48,42 @@ def test_different_user(task_table: TaskTable):
     def add1(a):
         return a + 1
     
+    @task_table.register
+    @task(job_type="webapp")
+    def simple_httpd(ip, port):
+        server_addr = (ip, port)
+        httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
+        httpd.serve_forever()
+
+    resp = client_root.post(
+        "/task/call",
+        json={
+            "task_name": "simple_httpd",
+            "args": [],
+            "kwargs": {}
+        },
+        headers=headers_root
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    resp = client_root.post(
+        "/job/wait",
+        json={
+            "job_id": job_id,
+            "status": "running",
+            "time_delta": 0.5,
+        },
+        headers=headers_root
+    )
+    assert resp.status_code == 200
+
+    resp = client_root.get(f"/proxy/app/{job_id}/", headers=headers_root)
+    assert resp.status_code == 200
+    resp = client_user1.get(f"/proxy/app/{job_id}/", headers=headers_user1)
+    assert resp.status_code != 200
+    resp = client_root.get(f"/job/cancel/{job_id}", headers=headers_root)
+    assert resp.status_code == 200
+
     resp = client_root.post("/task/call",
         json={
             "task_name": "add1",
@@ -64,6 +101,6 @@ def test_different_user(task_table: TaskTable):
     assert resp.status_code != 200
 
     resp = client_root.get("/job/list_all", headers=headers_root)
-    assert len(resp.json()) == 1
+    assert len(resp.json()) == 2
     resp = client_root.get(f"/job/status/{job_id}", headers=headers_root)
     assert resp.status_code == 200
