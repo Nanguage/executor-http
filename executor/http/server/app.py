@@ -18,6 +18,7 @@ def create_app() -> FastAPI:
         return {
             'allowed_routers': config.allowed_routers,
             'monitor_mode': config.monitor_mode,
+            'user_mode': config.user_mode,
         }
 
     if config.user_mode != "free":

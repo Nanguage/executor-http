@@ -61,6 +61,9 @@ def ser_job(job: Job) -> dict:
         if 'address' in job.attrs:
             job.attrs.pop('address')
 
+    if 'user' in job.attrs:
+        job.attrs.pop('user')
+
     return {
         'id': job.id,
         'name': job.name,
