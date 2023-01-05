@@ -2,7 +2,6 @@ import typing as T
 from datetime import datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
@@ -12,11 +11,12 @@ from .user_db.database import SessionAsync
 from .user_db import schemas, crud, models, utils
 from .user_db.schemas import User, role_priority_over
 from . import config
+from .utils import OAuth2PasswordBearerCookie
 
 
 token_getter: T.Callable
 if config.user_mode != "free":
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
+    oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="user/token")
     token_getter = oauth2_scheme
 else:
     token_getter = lambda: "fake_token"

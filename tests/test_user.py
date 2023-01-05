@@ -10,7 +10,7 @@ from executor.http.server import instance
 
 
 def login_client(client: TestClient, username: str, passwd: str):
-    resp = client.post("/user/login", data={
+    resp = client.post("/user/token", data={
         "username": username,
         "password": passwd,
     })

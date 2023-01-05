@@ -9,8 +9,8 @@ from ..user_db import crud
 router = APIRouter(prefix="/user")
 
 
-@router.post("/login")
-async def login(
+@router.post("/token")
+async def token(
         form_data: OAuth2PasswordRequestForm = Depends(),
         db: AsyncSession = Depends(get_db)) -> Token:
     user = await auth_user(db, form_data.username, form_data.password)

@@ -2,6 +2,7 @@ import re
 import sys
 import traceback
 import typing as T
+from copy import copy
 from datetime import datetime
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from executor.engine.job.condition import (
 )
 from executor.engine.manager import Jobs
 
-from . import config
+from .. import config
 
 
 class ConditionType(BaseModel):
@@ -57,12 +58,13 @@ def ser_job(job: Job) -> dict:
     else:
         cond_dict = None
 
+    attrs = copy(job.attrs)
     if 'proxy' in config.allowed_routers:
         if 'address' in job.attrs:
-            job.attrs.pop('address')
+            attrs.pop('address')
 
     if 'user' in job.attrs:
-        job.attrs.pop('user')
+        attrs.pop('user')
 
     return {
         'id': job.id,
@@ -75,7 +77,7 @@ def ser_job(job: Job) -> dict:
         'created_time': format_datetime(job.created_time),
         'submit_time': format_datetime(job.submit_time),
         'stoped_time': format_datetime(job.stoped_time),
-        'attrs': job.attrs,
+        'attrs': attrs,
     }
 
 
@@ -116,7 +118,7 @@ def get_jobs() -> Jobs:
         else:
             raise ValueError("Monitor cache path is not provided, please set it in config.")
     else:
-        from .instance import engine
+        from ..instance import engine
         jobs = engine.jobs
     return jobs
 
@@ -125,8 +127,8 @@ def reload_routers():
     """Reload router modules
     for switch user-mode / reload engine."""
     import importlib
-    from . import auth
-    from .routers import file, job, monitor, proxy, task
+    from .. import auth
+    from ..routers import file, job, monitor, proxy, task
     modules = [auth, file, job, monitor, proxy, task]
     for mod in modules:
         importlib.reload(mod)

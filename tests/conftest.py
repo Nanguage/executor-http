@@ -43,7 +43,7 @@ def headers(client: TestClient) -> T.Optional[dict]:
     if client.app.user_mode == "free":
         return None
     else:
-        resp = client.post("/user/login", data={
+        resp = client.post("/user/token", data={
             "username": "root",
             "password": "123",
         })
