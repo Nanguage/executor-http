@@ -1,10 +1,13 @@
+import typing as T
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..user_db.schemas import Token
-from ..auth import get_db, auth_user, create_access_token
+from ..auth import get_db, auth_user, create_access_token, get_current_user
 from ..user_db import crud
+from ..user_db.schemas import User
 
 router = APIRouter(prefix="/user")
 
@@ -24,3 +27,9 @@ async def token(
         await crud.create_user_login(db, user.id)
     access_token = create_access_token(user.username)
     return Token(access_token=access_token)
+
+
+@router.get("/info")
+async def user_info(
+        user: T.Optional[User] = Depends(get_current_user)):
+    return user
