@@ -7,9 +7,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
@@ -17,7 +17,7 @@ classifiers = [
 
 
 keywords = [
-    'Job Management', "Web"
+    'Job Management', "Web", "HTTP",
 ]
 
 
@@ -37,16 +37,31 @@ def get_long_description():
     return f"See {URL}"
 
 
-def get_install_requires():
-    requirements = [
-        "executor-engine", "fastapi", "uvicorn", "oneface>=0.1.9",
-        "python-multipart", "sqlalchemy", "aiosqlite",
-        "passlib[bcrypt]", "python-jose[cryptography]",
-    ]
+def get_requirements_from_file(filename):
+    requirements = []
+    with open(filename) as f:
+        for line in f.readlines():
+            line = line.strip()
+            if len(line) == 0:
+                continue
+            if line and not line.startswith('#'):
+                requirements.append(line)
     return requirements
 
 
-requires_test = ['pytest', 'pytest-cov', 'flake8', 'pytest-order', 'mypy', 'httpx']
+def get_install_requires():
+    return get_requirements_from_file('requirements.txt')
+
+
+requires_test = [
+    'pytest', 'pytest-cov', 'flake8',
+    'pytest-order', 'mypy', 'httpx',
+    'pytest-asyncio'
+]
+packages_for_dev = ["pip", "setuptools", "wheel", "twine", "ipdb"]
+
+requires_dev = packages_for_dev + requires_test
+requires_dask = ['dask', 'distributed', 'nest_asyncio']
 
 
 setup(
@@ -55,7 +70,7 @@ setup(
     author_email='vet.xwz@gmail.com',
     version=get_version(),
     license='MIT',
-    description='Plantform for manage job executions.',
+    description='HTTP Server and Client for executor.',
     long_description=get_long_description(),
     keywords=keywords,
     url=URL,
@@ -65,7 +80,8 @@ setup(
     classifiers=classifiers,
     install_requires=get_install_requires(),
     extras_require={
-        'test': requires_test,
+        'dev': requires_dev,
+        'dask': requires_dask,
     },
     python_requires='>=3.7, <4',
 )

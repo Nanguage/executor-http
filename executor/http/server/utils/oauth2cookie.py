@@ -17,14 +17,16 @@ class OAuth2PasswordBearerCookie(OAuth2):
     def __init__(
         self,
         tokenUrl: str,
-        scheme_name: str = None,
-        scopes: dict = None,
+        scheme_name: Optional[str] = None,
+        scopes: Optional[dict] = None,
         auto_error: bool = True,
     ):
         if not scopes:
             scopes = {}
-        flows = OAuthFlowsModel(password={"tokenUrl": tokenUrl, "scopes": scopes})
-        super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
+        flows = OAuthFlowsModel(
+            password={"tokenUrl": tokenUrl, "scopes": scopes})  # type: ignore
+        super().__init__(
+            flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
     async def __call__(self, request: Request) -> Optional[str]:
         header_authorization = request.headers.get("Authorization")

@@ -1,10 +1,14 @@
 import typing as T
 import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from cmd2func import cmd2func
 
+import pytest
+from httpx import AsyncClient
 from fastapi.testclient import TestClient
 
-from executor.http.server.task import Task, task, TaskTable
+from executor.http.server.task import TaskTable
+from executor.engine.launcher import launcher
 
 
 def test_task_reg_and_call(
@@ -14,7 +18,7 @@ def test_task_reg_and_call(
     def square(x: int):
         return x ** 2
 
-    task_1 = Task(square, job_type="process")
+    task_1 = launcher(square, job_type="process")
     task_table.register(task_1)
 
     # test list tasks
@@ -28,8 +32,8 @@ def test_task_reg_and_call(
             break
     assert t['args'][0]['name'] == 'x'
     assert t['args'][0]['type'] == 'int'
-    assert t['args'][0]['default'] == None
-    assert t['args'][0]['range'] == None
+    assert t['args'][0]['default'] is None
+    assert t['args'][0]['range'] is None
 
     # test call task
     resp = client.post(
@@ -73,23 +77,26 @@ def test_cancel_and_rerun_job(
 
     resp = client.get(f"/job/cancel/{add_id}", headers=headers)
     assert resp.status_code == 200
-    assert resp.json()['status'] == "canceled"
+    assert resp.json()['status'] == "cancelled"
 
     resp = client.get(f"/job/re_run/{add_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['status'] == "pending"
 
 
-def test_get_job_result(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
+@pytest.mark.asyncio
+async def test_get_job_result(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
     @task_table.register
-    @task(job_type="local")
+    @launcher(job_type="local")
     def mul(x, y):
         time.sleep(1)
         return x * y
 
-    resp = client.post(
+    headers = await async_get_headers
+
+    resp = await async_client.post(
         "/task/call",
         json={
             "task_name": "mul",
@@ -100,7 +107,8 @@ def test_get_job_result(
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client.get(f"/job/result/{job_id}", headers=headers)
+    resp = await async_client.get(
+        f"/job/result/{job_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['result'] == 80
 
@@ -113,7 +121,7 @@ def test_errors(client: TestClient, headers: T.Optional[dict]):
 
     fake_task_name = "fake"
     resp = client.post(
-        f"/task/call",
+        "/task/call",
         json={
             "task_name": fake_task_name,
             "args": [],
@@ -124,15 +132,19 @@ def test_errors(client: TestClient, headers: T.Optional[dict]):
     assert resp.status_code == 400
 
 
-def test_fetch_log(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
-    @task(job_type="local")
+@pytest.mark.asyncio
+async def test_fetch_log(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
+
+    @launcher(job_type="local")
     def say_hello():
         print("hello")
     task_table.register(say_hello)
-    resp = client.post(
-        f"/task/call",
+
+    headers = await async_get_headers
+    resp = await async_client.post(
+        "/task/call",
         json={
             "task_name": "say_hello",
             "args": [],
@@ -142,11 +154,11 @@ def test_fetch_log(
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client.post(f"/job/wait", json={
+    resp = await async_client.post("/job/wait", json={
         "job_id": job_id
     }, headers=headers)
     assert resp.status_code == 200
-    resp = client.get(f"/job/stdout/{job_id}", headers=headers)
+    resp = await async_client.get(f"/job/stdout/{job_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['content'] == "hello\n"
 
@@ -159,7 +171,7 @@ def test_remove_job(
         return a * b
 
     resp = client.post(
-        f"/task/call",
+        "/task/call",
         json={
             "task_name": "mul_2",
             "args": [1, 2],
@@ -177,15 +189,18 @@ def test_remove_job(
     assert job_id not in job_ids
 
 
-def test_job_condition(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
+@pytest.mark.asyncio
+async def test_job_condition(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
     @task_table.register
-    @task(job_type="local")
+    @launcher(job_type="local")
     def mul_3(a, b, c):
         return a * b * c
 
-    resp = client.post(
+    headers = await async_get_headers
+
+    resp = await async_client.post(
         "/task/call",
         json={
             "task_name": "mul_3",
@@ -196,7 +211,7 @@ def test_job_condition(
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client.post(
+    resp = await async_client.post(
         "task/call",
         json={
             "task_name": "mul_3",
@@ -206,23 +221,31 @@ def test_job_condition(
                 "type": "AfterAnother",
                 "arguments": {
                     "job_id": job_id,
-                    "status": "done",
                 }
             }
         },
         headers=headers,
     )
     job_id = resp.json()['id']
-    resp = client.get(f"/job/result/{job_id}", headers=headers)
+    resp = await async_client.get(
+        f"/job/result/{job_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['result'] == 42
 
 
-def test_subprocess_job(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
-    task_table.register(Task("python -c 'print({a} + {b})'", name="cmd_add"))
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_subprocess_job(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
+    @launcher
+    @cmd2func
+    def cmd_add(a, b):
+        return f"python -c 'print({a} + {b})'"
+    task_table.register(cmd_add)
+
+    headers = await async_get_headers
+
+    resp = await async_client.post(
         "/task/call",
         json={
             "task_name": "cmd_add",
@@ -235,44 +258,48 @@ def test_subprocess_job(
         headers=headers
     )
     assert resp.status_code == 200
-    # TODO: not work in test mode, don't know why
-    #job_id = resp.json()['id']
-    #resp = client.post(
-    #    "/job/wait",
-    #    json={
-    #        "job_id": job_id,
-    #    },
-    #    headers=headers,
-    #)
-    #assert resp.status_code == 200
-    #resp = client.get(f"/job/stdout/{job_id}", headers=headers)
-    #assert resp.status_code == 200
-    #assert resp.json()['content'] == "3\n\n"
-    #resp = client.post(
-    #    "/task/call",
-    #    json={
-    #        "task_name": "cmd_add",
-    #        "args": [],
-    #        "kwargs": {
-    #            "a": 1,
-    #        }
-    #    },
-    #    headers=headers
-    #)
-    #assert resp.status_code == 400
+    job_id = resp.json()['id']
+    resp = await async_client.post(
+        "/job/wait",
+        json={
+            "job_id": job_id,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    resp = await async_client.get(
+        f"/job/stdout/{job_id}", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()['content'] == "3\n\n"
+    resp = await async_client.post(
+        "/task/call",
+        json={
+            "task_name": "cmd_add",
+            "args": [],
+            "kwargs": {
+                "a": 1,
+            }
+        },
+        headers=headers
+    )
+    assert resp.status_code == 400
 
 
 def test_webapp_job(
         client: TestClient, task_table: TaskTable,
         headers: T.Optional[dict]):
     @task_table.register
-    @task(job_type="webapp")
+    @launcher(job_type="webapp")
     def simple_httpd(ip, port):
         server_addr = (ip, port)
         httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
         httpd.serve_forever()
 
-    task_table.register(Task("python -m http.server -b {ip} {port}", job_type="webapp", name="simple_httpd_cmd"))
+    @task_table.register
+    @launcher(job_type="webapp")
+    @cmd2func
+    def simple_httpd_cmd():
+        return "python -m http.server -b {ip} {port}"
 
     for task_name in ('simple_httpd', 'simple_httpd_cmd'):
         resp = client.post(

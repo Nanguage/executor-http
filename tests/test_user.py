@@ -5,8 +5,9 @@ from fastapi.testclient import TestClient
 from executor.http.server.app import create_app
 from executor.http.server.user_db import crud, database, models, schemas
 from executor.http.server import config
-from executor.http.server.task import TaskTable, task
+from executor.http.server.task import TaskTable
 from executor.http.server import instance
+from executor.engine.launcher import launcher
 
 
 def login_client(client: TestClient, username: str, passwd: str):
@@ -18,7 +19,7 @@ def login_client(client: TestClient, username: str, passwd: str):
     assert "access_token" in resp.json()
     token = resp.json()["access_token"]
     headers = {
-        "Authorization": f"Bearer {token}", 
+        "Authorization": f"Bearer {token}",
     }
     return headers
 
@@ -44,12 +45,13 @@ def test_different_user(task_table: TaskTable):
     headers_user1 = login_client(client_user1, test_username, test_user_passwd)
     client_root = TestClient(app)
     headers_root = login_client(client_root, "root", "123")
+
     @task_table.register
     def add1(a):
         return a + 1
-    
+
     @task_table.register
-    @task(job_type="webapp")
+    @launcher(job_type="webapp")
     def simple_httpd(ip, port):
         server_addr = (ip, port)
         httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
@@ -84,7 +86,8 @@ def test_different_user(task_table: TaskTable):
     resp = client_root.get(f"/job/cancel/{job_id}", headers=headers_root)
     assert resp.status_code == 200
 
-    resp = client_root.post("/task/call",
+    resp = client_root.post(
+        "/task/call",
         json={
             "task_name": "add1",
             "args": [1],

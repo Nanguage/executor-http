@@ -23,6 +23,9 @@ allowed_routers = [
     "proxy",
 ]
 
+# redirect job's stdout and stderr to file or not
+redirect_job_stream: bool = True
+
 monitor_mode = False
 monitor_cache_path: T.Optional[T.Union[str, Path]] = None
 
@@ -32,7 +35,7 @@ root_password = os.environ.get("EXECUTOR_ROOT_PASSWORD")
 
 # Secret key for JSON Web Token
 # Generate using command: openssl rand -hex 32
-jwt_secret_key = "91bdbf71b350475384409cef5e2103a859033f067bafbeda7467ed88d79b0e04"
+jwt_secret_key = "91bdbf71b350475384409cef5e2103a859033f067bafbeda7467ed88d79b0e04"  # noqa: E501
 jwt_algorithm = "HS256"
 
 access_token_expire_minutes = 30

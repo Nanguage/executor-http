@@ -1,8 +1,6 @@
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 
-from executor.engine.job import Job
-
 from .. import config
 from ..utils import ser_job, get_jobs
 
@@ -20,7 +18,6 @@ async def get_all_jobs_from_cache():
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e))
     resp = []
-    job: Job
     for job in jobs.all_jobs():
         resp.append(ser_job(job))
     return resp
@@ -32,7 +29,8 @@ def _read_then_return(job_id: str, log_file: str):
     else:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            detail="Monitor cache path is not provided, please set it in config."
+            detail="Monitor cache path is not provided, "
+                   "please set it in config."
         )
     job_cache_dir = cache_path / job_id
     try:

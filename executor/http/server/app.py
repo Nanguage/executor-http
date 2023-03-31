@@ -74,8 +74,10 @@ def run_server(
 
     def split_str(text: str, sep: str = ",") -> T.List[str]:
         return [t.strip() for t in text.split(sep)]
-    
-    def parse_str_or_list(str_or_list: T.Union[str, T.List[str]]) -> T.List[str]:
+
+    def parse_str_or_list(
+            str_or_list: T.Union[str, T.List[str]]
+            ) -> T.List[str]:
         if isinstance(str_or_list, list):
             return str_or_list
         else:
@@ -90,7 +92,7 @@ def run_server(
     if monitor_mode is not None:
         config.monitor_mode = monitor_mode
     if monitor_cache_path is not None:
-        config.monitor_cache_path  = monitor_cache_path
+        config.monitor_cache_path = monitor_cache_path
 
     if str(config.working_dir) != ".":
         working_dir = Path(config.working_dir)

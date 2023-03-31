@@ -10,6 +10,7 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def get_async_url(url: str) -> str:
     parts = url.split(":///")
     if "+" not in parts[0]:
@@ -18,9 +19,11 @@ def get_async_url(url: str) -> str:
     res = parts[0] + ":///" + parts[1]
     return res
 
-engine_async = create_async_engine(get_async_url(user_database_url), echo=False)
+
+engine_async = create_async_engine(
+    get_async_url(user_database_url), echo=False)
 SessionAsync = sessionmaker(
-    bind=engine_async, 
+    bind=engine_async,
     class_=AsyncSession,
     expire_on_commit=False,)  # type: ignore
 

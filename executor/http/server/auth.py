@@ -11,7 +11,11 @@ from .user_db.database import SessionAsync
 from .user_db import schemas, crud, models, utils
 from .user_db.schemas import User, role_priority_over
 from . import config
-from .utils import OAuth2PasswordBearerCookie
+from .utils.oauth2cookie import OAuth2PasswordBearerCookie
+
+
+def fake_token():
+    return "fake_token"
 
 
 token_getter: T.Callable
@@ -19,7 +23,7 @@ if config.user_mode != "free":
     oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="user/token")
     token_getter = oauth2_scheme
 else:
-    token_getter = lambda: "fake_token"
+    token_getter = fake_token
 
 
 async def get_db():
@@ -44,17 +48,18 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
         try:
-            payload = jwt.decode(token, config.jwt_secret_key, [config.jwt_algorithm])
+            payload = jwt.decode(
+                token, config.jwt_secret_key, [config.jwt_algorithm])
             username = payload.get("sub")
             if username is None:
                 raise credentials_exception
-        except JWTError:
+        except JWTError:  # type: ignore
             raise credentials_exception
         user = await crud.get_user_by_username(db, username)
         if user is None:
             raise credentials_exception
         return schemas.User(
-            username=user.username, role=user.role, id=user.id,
+            username=user.username, role=user.role, id=user.id,  # type: ignore
         )
     else:
         return None
@@ -78,11 +83,12 @@ async def auth_user(
 def create_access_token(
         subject: T.Union[str, T.Any],
         ) -> str:
-    expires_delta = datetime.utcnow() + timedelta(minutes=config.access_token_expire_minutes)
+    dt = timedelta(minutes=config.access_token_expire_minutes)
+    expires_delta = datetime.utcnow() + dt
     to_encode = {"exp": expires_delta, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, config.jwt_secret_key, config.jwt_algorithm)
+    encoded_jwt = jwt.encode(
+        to_encode, config.jwt_secret_key, config.jwt_algorithm)
     return encoded_jwt
-
 
 
 def user_can_access(user: User, job: Job) -> bool:
@@ -105,4 +111,3 @@ def check_user_job(user: T.Optional[User], job: Job) -> Job:
             status.HTTP_403_FORBIDDEN,
             detail="Can't access to the job."
         )
-

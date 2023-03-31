@@ -6,10 +6,10 @@ import httpx
 from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import StreamingResponse, RedirectResponse
 from starlette.background import BackgroundTask
+from executor.engine.manager import JobNotFoundError
 
-from executor.engine.job.extend import WebAppJob
-
-from ..utils import get_jobs
+from ..utils import get_jobs, job_to_jobtype
+from ..utils.log import logger
 from ..auth import get_current_user, check_user_job
 from ..user_db.schemas import User
 
@@ -29,16 +29,19 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text
 
 
-async def _reverse_proxy(job_id: str, request: Request, user: T.Optional[User]):
-    job = jobs.get_job_by_id(job_id)
-    if job is None:
+async def _reverse_proxy(
+        job_id: str, request: Request,
+        user: T.Optional[User],):
+    try:
+        job = jobs.get_job_by_id(job_id)
+    except JobNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Job {job_id} is not exist.",)
-    if not isinstance(job, WebAppJob):
+    if job_to_jobtype(job) != "webapp":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Job {job_id} is not a WebAppJob.",)
+            detail=f"Job {job_id} is not a WebappJob.",)
     if (job.status != "running") or (job.port is None):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,9 +61,12 @@ async def _reverse_proxy(job_id: str, request: Request, user: T.Optional[User]):
         try:
             resp = await client.send(req, stream=True)
             break
-        except httpx.ConnectError:
-            pass
-        count -= 1
+        except Exception as e:
+            logger.warning(
+                f"Error when proxy request: {repr(e)} "
+                f"Try again, {count-1} times left.")
+            count -= 1
+            continue
     else:
         resp = await client.send(req, stream=True)
     if resp.status_code == status.HTTP_307_TEMPORARY_REDIRECT:

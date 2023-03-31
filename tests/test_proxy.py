@@ -1,23 +1,27 @@
 import typing as T
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from fastapi.testclient import TestClient
+import pytest
+from httpx import AsyncClient
 
-from executor.http.server import task
 from executor.http.server.task import TaskTable
+from executor.engine.launcher import launcher
 
 
-def test_proxy(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
+@pytest.mark.asyncio
+async def test_proxy(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
     @task_table.register
-    @task(job_type="webapp")
+    @launcher(job_type="webapp")
     def simple_httpd(ip, port):
         server_addr = (ip, port)
         httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
         httpd.serve_forever()
 
-    resp = client.post(
+    headers = await async_get_headers
+
+    resp = await async_client.post(
         "/task/call",
         json={
             "task_name": "simple_httpd",
@@ -28,7 +32,7 @@ def test_proxy(
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client.post(
+    resp = await async_client.post(
         "/job/wait",
         json={
             "job_id": job_id,
@@ -39,7 +43,9 @@ def test_proxy(
     )
     assert resp.status_code == 200
     assert 'address' not in resp.json()['attrs']
-    resp = client.get(f"/proxy/app/{job_id}/", headers=headers)
+    resp = await async_client.get(
+        f"/proxy/app/{job_id}/", headers=headers)
     assert resp.status_code == 200
-    resp = client.get(f"/job/cancel/{job_id}", headers=headers)
+    resp = await async_client.get(
+        f"/job/cancel/{job_id}", headers=headers)
     assert resp.status_code == 200

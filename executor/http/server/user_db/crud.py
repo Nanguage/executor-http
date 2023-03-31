@@ -31,11 +31,17 @@ def init_users(db: Session) -> T.Optional[models.User]:
     return root
 
 
-def get_user_by_username_sync(db: Session, username: str) -> T.Optional[models.User]:
-    return db.query(models.User).filter(models.User.username == username).first()
+def get_user_by_username_sync(
+        db: Session, username: str
+        ) -> T.Optional[models.User]:
+    return db.query(models.User)\
+        .filter(models.User.username == username)\
+        .first()
 
 
-async def get_user_by_username(db: AsyncSession, username: str) -> T.Optional[models.User]:
+async def get_user_by_username(
+        db: AsyncSession, username: str
+        ) -> T.Optional[models.User]:
     stmt = select(models.User).filter(models.User.username == username)
     async with db.begin():
         res = await db.execute(stmt)
@@ -61,4 +67,3 @@ async def create_user_login(db: AsyncSession, user_id: int) -> models.Login:
         db.add(login)
     await db.commit()
     return login
-

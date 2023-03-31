@@ -1,0 +1,12 @@
+executor-engine>=0.1.3
+funcdesc>=0.1.2
+cmd2func>=0.1.6
+fire
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+aiosqlite
+passlib[bcrypt]
+python-jose[cryptography]
+httpx

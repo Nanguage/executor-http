@@ -16,8 +16,8 @@ def test_list_all():
         test_job_cls = [LocalJob, ThreadJob, ProcessJob]
         for job_cls in test_job_cls:
             job = job_cls(lambda: 42)
-            await engine.submit(job)
-        await engine.wait()
+            await engine.submit_async(job)
+        await engine.join()
 
     asyncio.run(submit_job())
     config.allowed_routers = []
@@ -39,8 +39,8 @@ def test_fetch_log():
     job = LocalJob(say_hello, redirect_out_err=True)
 
     async def submit_job():
-        await engine.submit(job)
-        await engine.wait()
+        await engine.submit_async(job)
+        await engine.join()
 
     asyncio.run(submit_job())
 

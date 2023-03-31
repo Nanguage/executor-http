@@ -14,8 +14,8 @@ class Login(BaseModel):
 
 
 Role = T.Literal["root", "admin", "user"]
-
 _role_order = ['root', 'admin', 'user']
+
 
 def role_priority_over(role1: Role, role2: Role) -> bool:
     """role1 is greater or equal than(>=) role2"""

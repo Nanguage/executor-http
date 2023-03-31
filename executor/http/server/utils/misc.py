@@ -5,14 +5,12 @@ import typing as T
 from copy import copy
 from datetime import datetime
 from pathlib import Path
+from dataclasses import asdict
 
 from pydantic import BaseModel
 
 from executor.engine.job import Job, LocalJob, ThreadJob, ProcessJob
-from executor.engine.job.extend import SubprocessJob, WebAppJob
-from executor.engine.job.condition import (
-    AfterAnother, AfterOthers, AfterTimepoint, AllSatisfied, AnySatisfied,
-)
+from executor.engine.job.extend import SubprocessJob, WebappJob
 from executor.engine.manager import Jobs
 
 from .. import config
@@ -20,9 +18,7 @@ from .. import config
 
 class ConditionType(BaseModel):
     type: str
-    arguments: T.Union[
-        AfterAnother, AfterOthers, AfterTimepoint, AllSatisfied, AnySatisfied,
-    ]
+    arguments: dict
 
 
 def format_datetime(d: T.Optional[datetime]):
@@ -39,21 +35,29 @@ jobtype_classes: T.Dict[JobType, T.Type[Job]] = {
     "thread": ThreadJob,
     "local": LocalJob,
     "subprocess": SubprocessJob,
-    "webapp": WebAppJob,
+    "webapp": WebappJob,
 }
 
 _class_name_to_jobtype = {v.__name__: k for k, v in jobtype_classes.items()}
 
 
 def job_to_jobtype(job: Job) -> JobType:
-    return _class_name_to_jobtype[type(job).__name__]
+    type_name = type(job).__name__
+    if type_name == "_WebappJob":
+        return "webapp"
+    elif type_name == "_SubprocessJob":
+        return "subprocess"
+    return _class_name_to_jobtype[type_name]
 
 
 def ser_job(job: Job) -> dict:
     """Convert job to a JSON-able dict."""
     if job.condition is not None:
         cls_name = job.condition.__class__.__name__
-        cond = ConditionType(type=cls_name, arguments=job.condition)
+        cond = ConditionType(
+            type=cls_name,
+            arguments=asdict(job.condition)
+        )
         cond_dict = cond.dict()
     else:
         cond_dict = None
@@ -116,7 +120,8 @@ def get_jobs() -> Jobs:
             cache_path = Path(config.monitor_cache_path)
             jobs = Jobs(cache_path / "jobs")
         else:
-            raise ValueError("Monitor cache path is not provided, please set it in config.")
+            raise ValueError(
+                "Monitor cache path is not provided, please set it in config.")
     else:
         from ..instance import engine
         jobs = engine.jobs

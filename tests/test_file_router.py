@@ -47,7 +47,7 @@ def test_download_file(
         headers=headers
     )
     assert resp.status_code == 200
-    os.remove(test_file_path)    
+    os.remove(test_file_path)
 
 
 def test_upload_file(
@@ -125,6 +125,9 @@ def test_move_files(
         headers=headers,
     )
     assert resp.status_code == 200
-    assert all([(Path(dest_dir_path) / f.name).exists() for f in files_path_for_move])
+    assert all([
+        (Path(dest_dir_path) / f.name).exists()
+        for f in files_path_for_move
+    ])
     assert all([(not Path(f).exists()) for f in files_path_for_move])
     shutil.rmtree(dest_dir_path)

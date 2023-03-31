@@ -33,7 +33,8 @@ def get_path(root_path: Path, path_str: str) -> Path:
     return path
 
 
-def get_user_path(user: T.Optional[User] = Depends(auth.get_current_user)) -> Path:
+def get_user_path(
+        user: T.Optional[User] = Depends(auth.get_current_user)) -> Path:
     working_path = Path(config.working_dir).absolute()
     if user is None:
         return working_path
@@ -45,7 +46,9 @@ def get_user_path(user: T.Optional[User] = Depends(auth.get_current_user)) -> Pa
 
 
 @router.post("/list_dir")
-async def list_dir(req: ListDirRequest, user_path: Path = Depends(get_user_path)):
+async def list_dir(
+        req: ListDirRequest,
+        user_path: Path = Depends(get_user_path)):
     path = get_path(user_path, req.path)
     if (not path.exists()) or (not path.is_dir()):
         raise HTTPException(
@@ -70,7 +73,9 @@ class DownloadReq(BaseModel):
 
 
 @router.post("/download")
-async def download(req: DownloadReq, user_path: Path = Depends(get_user_path)):
+async def download(
+        req: DownloadReq,
+        user_path: Path = Depends(get_user_path)):
     path = get_path(user_path, req.path)
     if not path.exists():
         raise HTTPException(
@@ -89,6 +94,7 @@ async def upload(
         files: T.List[UploadFile] = File(...),
         user_path: Path = Depends(get_user_path)):
     for file in files:
+        assert file.filename is not None
         file_path = get_path(user_path, join(path, file.filename))
         content = await file.read()
         with open(file_path, 'wb') as f:
@@ -100,7 +106,9 @@ class DeleteReq(BaseModel):
 
 
 @router.post("/delete")
-async def delete(req: DeleteReq, user_path: Path = Depends(get_user_path)):
+async def delete(
+        req: DeleteReq,
+        user_path: Path = Depends(get_user_path)):
     paths_to_delete: T.List[Path] = []
     for p in req.paths:
         path = get_path(user_path, p)
@@ -118,7 +126,9 @@ class MoveReq(BaseModel):
 
 
 @router.post("/move")
-async def move(req: MoveReq, user_path: Path = Depends(get_user_path)):
+async def move(
+        req: MoveReq,
+        user_path: Path = Depends(get_user_path)):
     path_dest = get_path(user_path, req.destination)
     if not path_dest.is_dir():
         raise HTTPException(
