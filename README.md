@@ -1,7 +1,7 @@
 <div align="center">
 <h1> Executor HTTP 🌐 </h1>
 
-<p> The HTTP server and client for [Executor](https://github.com/Nanguage/executor-engine) </p>
+<p> The HTTP server and client for <a href="https://github.com/Nanguage/executor-engine">Executor</a> </p>
 
 <p>
   <a href="https://github.com/Nanguage/executor-http/actions/workflows/build_and_test.yml">
