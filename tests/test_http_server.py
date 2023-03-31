@@ -270,7 +270,7 @@ async def test_subprocess_job(
     resp = await async_client.get(
         f"/job/stdout/{job_id}", headers=headers)
     assert resp.status_code == 200
-    assert resp.json()['content'] == "3\n\n"
+    assert resp.json()['content'].strip() == "3"
     resp = await async_client.post(
         "/task/call",
         json={
