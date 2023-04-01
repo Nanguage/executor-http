@@ -1,6 +1,7 @@
 import typing as T
 import re
 import functools
+import asyncio
 
 import httpx
 from fastapi import APIRouter, Request, HTTPException, status, Depends
@@ -12,6 +13,7 @@ from ..utils import get_jobs, job_to_jobtype
 from ..utils.log import logger
 from ..auth import get_current_user, check_user_job
 from ..user_db.schemas import User
+from ..config import proxy_request_wait_time
 
 
 router = APIRouter(prefix="/proxy")
@@ -65,6 +67,7 @@ async def _reverse_proxy(
             logger.warning(
                 f"Error when proxy request: {repr(e)} "
                 f"Try again, {count-1} times left.")
+            await asyncio.sleep(proxy_request_wait_time)
             count -= 1
             continue
     else:
