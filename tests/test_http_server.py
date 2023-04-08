@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from fastapi.testclient import TestClient
 
 from executor.http.server.task import TaskTable
+from executor.http.server import config, instance
 from executor.engine.launcher import launcher
 
 
@@ -75,6 +76,10 @@ def test_cancel_and_rerun_job(
     assert resp.json()['status'] == "pending"
     add_id = resp.json()['id']
 
+    # test the error of rerun a pending job
+    resp = client.get(f"/job/re_run/{add_id}", headers=headers)
+    assert resp.status_code == 400
+
     resp = client.get(f"/job/cancel/{add_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['status'] == "cancelled"
@@ -136,10 +141,13 @@ def test_errors(client: TestClient, headers: T.Optional[dict]):
 async def test_fetch_log(
         async_client: AsyncClient, task_table: TaskTable,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    config.redirect_job_stream = True
+    instance.reload_engine()
 
     @launcher(job_type="local")
     def say_hello():
         print("hello")
+        raise Exception("error")
     task_table.register(say_hello)
 
     headers = await async_get_headers
@@ -161,6 +169,43 @@ async def test_fetch_log(
     resp = await async_client.get(f"/job/stdout/{job_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['content'] == "hello\n"
+    resp = await async_client.get(f"/job/stderr/{job_id}", headers=headers)
+    assert resp.status_code == 200
+    assert len(resp.json()['content']) > 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_log_error(
+        async_client: AsyncClient, task_table: TaskTable,
+        async_get_headers: T.Awaitable[T.Optional[dict]]):
+    # turn-off redirect stream, test the read error
+    config.redirect_job_stream = False
+    instance.reload_engine()
+
+    @launcher(job_type="local")
+    def say_hello():
+        print("hello")
+    task_table.register(say_hello)
+
+    headers = await async_get_headers
+
+    resp = await async_client.post(
+        "/task/call",
+        json={
+            "task_name": "say_hello",
+            "args": [],
+            "kwargs": {},
+        },
+        headers=headers
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    resp = await async_client.post("/job/wait", json={
+        "job_id": job_id
+    }, headers=headers)
+    assert resp.status_code == 200
+    resp = await async_client.get(f"/job/stdout/{job_id}", headers=headers)
+    assert resp.status_code == 400
 
 
 def test_remove_job(
@@ -237,6 +282,9 @@ async def test_job_condition(
 async def test_subprocess_job(
         async_client: AsyncClient, task_table: TaskTable,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    config.redirect_job_stream = True
+    instance.reload_engine()
+
     @launcher
     @cmd2func
     def cmd_add(a, b):

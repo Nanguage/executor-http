@@ -6,6 +6,7 @@ import fire
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from executor.engine import EngineSetting
 
 
 def create_app() -> FastAPI:
@@ -68,6 +69,7 @@ def run_server(
         allowed_routers: OptionStrList = None,
         monitor_mode: T.Optional[bool] = None,
         monitor_cache_path: T.Optional[str] = None,
+        engine_setting: T.Optional[EngineSetting] = None,
         **uvicorn_kwargs,
         ):
     from . import config
@@ -93,6 +95,8 @@ def run_server(
         config.monitor_mode = monitor_mode
     if monitor_cache_path is not None:
         config.monitor_cache_path = monitor_cache_path
+    if engine_setting is not None:
+        config.engine_setting = engine_setting
 
     if str(config.working_dir) != ".":
         working_dir = Path(config.working_dir)

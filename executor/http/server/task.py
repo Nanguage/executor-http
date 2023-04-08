@@ -5,7 +5,6 @@ from executor.engine.launcher import (
     SyncLauncher,
 )
 from funcdesc.desc import NotDef
-from .instance import engine
 
 
 class TaskTable(object):
@@ -18,6 +17,7 @@ class TaskTable(object):
         return self.table[key]
 
     def register(self, task: T.Union[LauncherBase, T.Callable]):
+        from .instance import engine
         if isinstance(task, SyncLauncher):
             task = task.to_async()
         elif isinstance(task, AsyncLauncher):

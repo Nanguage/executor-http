@@ -36,7 +36,7 @@ async def test_proxy(
         "/job/wait",
         json={
             "job_id": job_id,
-            "status": "running",
+            "statuses": ["running"],
             "time_delta": 0.5,
         },
         headers=headers,

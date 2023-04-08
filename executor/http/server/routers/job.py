@@ -4,7 +4,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
-from executor.engine.job.utils import InvalidStateError, JobEmitError
+from executor.engine.job.utils import InvalidStateError
 from executor.engine.job import Job
 from executor.engine.job.base import JobStatusType
 from executor.engine.manager import JobNotFoundError
@@ -55,16 +55,8 @@ async def get_all_jobs(user: T.Optional[User] = Depends(get_current_user)):
 async def cancel_job(
         job_id: str,
         user: T.Optional[User] = Depends(get_current_user)):
-    running = engine.jobs.running
-    pending = engine.jobs.pending
-    if job_id in running:
-        job = running[job_id]
-        job = check_user_job(user, job)
-        await job.cancel()
-        return ser_job(job)
-    elif job_id in pending:
-        job = pending[job_id]
-        job = check_user_job(user, job)
+    job = get_job(job_id, user)
+    if job.status in ("running", "pending"):
         await job.cancel()
         return ser_job(job)
     else:
@@ -81,7 +73,7 @@ async def re_run_job(
     try:
         await job.rerun()
         return ser_job(job)
-    except JobEmitError as e:
+    except InvalidStateError as e:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=str(e))
@@ -103,22 +95,16 @@ async def wait_job_result(
         job_id: str,
         user: T.Optional[User] = Depends(get_current_user)):
     job = get_job(job_id, user)
-    try:
-        await job.join()
-        return {
-            'job': ser_job(job),
-            'result': job.result(),
-        }
-    except InvalidStateError:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Job can not fetch result",
-        )
+    await job.join()
+    return {
+        'job': ser_job(job),
+        'result': job.result(),
+    }
 
 
 class WaitRequest(BaseModel):
     job_id: str
-    status: JobStatusType = "done"
+    statuses: T.List[JobStatusType] = ["done", "failed", "cancelled"]
     time_delta: float = 0.1
 
 
@@ -128,7 +114,7 @@ async def wait(
         user: T.Optional[User] = Depends(get_current_user)):
     job = get_job(req.job_id, user)
     while True:
-        if job.status == req.status:
+        if job.status in req.statuses:
             break
         await asyncio.sleep(req.time_delta)
     return ser_job(job)

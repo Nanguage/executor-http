@@ -2,6 +2,7 @@ import os
 import typing as T
 from pathlib import Path
 
+from executor.engine import EngineSetting
 from .task import TaskTable
 
 
@@ -42,3 +43,9 @@ access_token_expire_minutes = 30
 
 # The reverse_proxy wait time between two calls
 proxy_request_wait_time = 0.2
+
+# The executor engine's setting
+engine_setting = EngineSetting(
+    max_jobs=None,
+    print_traceback=True,
+)

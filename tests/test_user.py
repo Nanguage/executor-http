@@ -72,7 +72,7 @@ def test_different_user(task_table: TaskTable):
         "/job/wait",
         json={
             "job_id": job_id,
-            "status": "running",
+            "statuses": ["running"],
             "time_delta": 0.5,
         },
         headers=headers_root

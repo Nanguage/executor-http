@@ -48,6 +48,21 @@ def test_download_file(
     )
     assert resp.status_code == 200
     os.remove(test_file_path)
+    resp = client.post(
+        "/file/download",
+        json={"path": "not_exist"},
+        headers=headers
+    )
+    assert resp.status_code == 404
+    test_dir = Path("test_dir/")
+    test_dir_path = base_path / test_dir
+    test_dir_path.mkdir(exist_ok=True)
+    resp = client.post(
+        "/file/download",
+        json={"path": str(test_dir)},
+        headers=headers
+    )
+    assert resp.status_code == 400
 
 
 def test_upload_file(
@@ -116,6 +131,17 @@ def test_move_files(
     dest_dir = "test_dest_dir1/"
     dest_dir_path = base_path / dest_dir
     os.mkdir(dest_dir_path)
+    # test the error when the destination is not a directory
+    resp = client.post(
+        "/file/move",
+        json={
+            "paths": files_for_move,
+            "destination": str(dest_dir_path / "a.txt"),
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    # test the normal case
     resp = client.post(
         "/file/move",
         json={
