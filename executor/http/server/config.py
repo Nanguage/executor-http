@@ -39,3 +39,6 @@ jwt_secret_key = "91bdbf71b350475384409cef5e2103a859033f067bafbeda7467ed88d79b0e
 jwt_algorithm = "HS256"
 
 access_token_expire_minutes = 30
+
+# The reverse_proxy wait time between two calls
+proxy_request_wait_time = 0.2

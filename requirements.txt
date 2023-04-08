@@ -1,4 +1,4 @@
-executor-engine>=0.1.3
+executor-engine>=0.1.4
 funcdesc>=0.1.2
 cmd2func>=0.1.6
 fire
