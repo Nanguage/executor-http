@@ -32,6 +32,7 @@ async def test_proxy(
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
+
     resp = await async_client.post(
         "/job/wait",
         json={
@@ -43,9 +44,21 @@ async def test_proxy(
     )
     assert resp.status_code == 200
     assert 'address' not in resp.json()['attrs']
+
     resp = await async_client.get(
         f"/proxy/app/{job_id}/", headers=headers)
     assert resp.status_code == 200
+
+    # proxy a job doesn't exist
+    resp = await async_client.get(
+        "/proxy/app/not_exist/", headers=headers)
+    assert resp.status_code == 400
+
     resp = await async_client.get(
         f"/job/cancel/{job_id}", headers=headers)
     assert resp.status_code == 200
+
+    # proxy a not running job
+    resp = await async_client.get(
+        f"/proxy/app/{job_id}/", headers=headers)
+    assert resp.status_code == 400

@@ -34,12 +34,14 @@ def test_list_all():
 def test_fetch_log():
     def say_hello():
         print("hello")
+        raise Exception("error")
 
     engine = Engine()
-    job = LocalJob(say_hello, redirect_out_err=True)
+    job1 = LocalJob(say_hello, redirect_out_err=True)
+    job2 = LocalJob(say_hello, redirect_out_err=False)
 
     async def submit_job():
-        await engine.submit_async(job)
+        await engine.submit_async(job1, job2)
         await engine.join()
 
     asyncio.run(submit_job())
@@ -47,6 +49,18 @@ def test_fetch_log():
     config.monitor_cache_path = engine.cache_dir
     app = create_app()
     client = TestClient(app)
-    resp = client.get(f"/monitor/stdout/{job.id}")
+    resp = client.get(f"/monitor/stdout/{job1.id}")
     assert resp.status_code == 200
     assert resp.json()['content'] == "hello\n"
+    resp = client.get(f"/monitor/stderr/{job1.id}")
+    assert resp.status_code == 200
+    assert len(resp.json()['content']) > 0
+
+    resp = client.get(f"/monitor/stdout/{job2.id}")
+    assert resp.status_code == 400
+
+    config.monitor_cache_path = None
+    app = create_app()
+    client = TestClient(app)
+    resp = client.get(f"/monitor/stdout/{job1.id}")
+    assert resp.status_code == 400

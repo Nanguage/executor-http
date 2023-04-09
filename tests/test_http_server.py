@@ -84,6 +84,10 @@ def test_cancel_and_rerun_job(
     assert resp.status_code == 200
     assert resp.json()['status'] == "cancelled"
 
+    # test the error of cancel a cancelled job
+    resp = client.get(f"/job/cancel/{add_id}", headers=headers)
+    assert resp.status_code == 400
+
     resp = client.get(f"/job/re_run/{add_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['status'] == "pending"
@@ -276,6 +280,24 @@ async def test_job_condition(
         f"/job/result/{job_id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()['result'] == 42
+
+    # test AfterOthers(not supported)
+    resp = await async_client.post(
+        "task/call",
+        json={
+            "task_name": "mul_3",
+            "args": [21, 2, 1],
+            "kwargs": {},
+            "condition": {
+                "type": "AfterOthers",
+                "arguments": {
+                    "jobs_id": [job_id],
+                }
+            }
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
 
 
 @pytest.mark.asyncio

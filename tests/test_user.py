@@ -24,6 +24,20 @@ def login_client(client: TestClient, username: str, passwd: str):
     return headers
 
 
+def test_error_password():
+    config.user_mode = "hub"
+    config.root_password = "123"
+    config.allowed_routers = ["job", "task", "file", "proxy", "user"]
+    instance.reload_engine()
+    app = create_app()
+    client = TestClient(app)
+    resp = client.post("/user/token", data={
+        "username": "fake",
+        "password": "fake",
+    })
+    assert resp.status_code == 401
+
+
 def test_different_user(task_table: TaskTable):
     models.Base.metadata.create_all(bind=database.engine)
     db = database.SessionLocal()
@@ -45,6 +59,13 @@ def test_different_user(task_table: TaskTable):
     headers_user1 = login_client(client_user1, test_username, test_user_passwd)
     client_root = TestClient(app)
     headers_root = login_client(client_root, "root", "123")
+
+    resp = client_user1.get("/user/info", headers=headers_user1)
+    assert resp.status_code == 200
+    assert resp.json()['username'] == 'user1'
+    resp = client_root.get("/user/info", headers=headers_root)
+    assert resp.status_code == 200
+    assert resp.json()['username'] == 'root'
 
     @task_table.register
     def add1(a):

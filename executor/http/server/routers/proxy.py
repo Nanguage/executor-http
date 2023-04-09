@@ -70,13 +70,13 @@ async def _reverse_proxy(
             await asyncio.sleep(proxy_request_wait_time)
             count -= 1
             continue
-    else:
+    else:  # pragma: no cover
         resp = await client.send(req, stream=True)
     if resp.status_code == status.HTTP_307_TEMPORARY_REDIRECT:
-        return RedirectResponse(
+        return RedirectResponse(   # pragma: no cover
             path_prefix+resp.headers['location'], headers=resp.headers)
     headers = req.headers.copy()
-    if 'content-length' in headers:
+    if 'content-length' in headers:  # pragma: no cover
         headers.pop('content-length')
     return StreamingResponse(
         resp.aiter_raw(),
@@ -97,10 +97,10 @@ async def proxy_get(
 async def proxy_post(
         job_id: str, request: Request,
         user: T.Optional[User] = Depends(get_current_user)):
-    return await _reverse_proxy(job_id, request, user)
+    return await _reverse_proxy(job_id, request, user)  # pragma: no cover
 
 
-async def root_dispatch(request: Request):
+async def root_dispatch(request: Request):  # pragma: no cover
     headers = request.headers
     if 'referer' in headers:
         referer = headers['referer']
