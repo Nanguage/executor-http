@@ -133,7 +133,7 @@ def reload_routers():
     for switch user-mode / reload engine."""
     import importlib
     from .. import auth
-    from ..routers import file, job, monitor, proxy, task
-    modules = [auth, file, job, monitor, proxy, task]
+    from ..routers import file, job, monitor, proxy, task, user
+    modules = [auth, file, job, monitor, proxy, task, user]
     for mod in modules:
         importlib.reload(mod)
