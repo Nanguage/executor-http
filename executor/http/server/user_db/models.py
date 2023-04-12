@@ -1,9 +1,10 @@
 import typing as T
 
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy.orm import relationship, Mapped, declarative_base
 
-from .database import Base
+
+Base = declarative_base()
 
 
 class User(Base):

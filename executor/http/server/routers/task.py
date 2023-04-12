@@ -4,10 +4,8 @@ from pydantic import BaseModel
 
 from executor.engine.job.condition import AfterAnother
 
-from ..config import task_table, redirect_job_stream
-from ..instance import engine
-from ..utils import ConditionType, ser_job
-from ..auth import get_current_user
+from ..utils import ConditionType, ser_job, get_app, CustomFastAPI
+from ..utils.auth import get_current_user
 from ..user_db.schemas import User
 
 
@@ -24,9 +22,10 @@ class CallRequest(BaseModel):
 @router.post("/call")
 async def call(
         req: CallRequest,
-        user: T.Optional[User] = Depends(get_current_user)):
+        user: T.Optional[User] = Depends(get_current_user),
+        app: CustomFastAPI = Depends(get_app)):
     try:
-        task = task_table[req.task_name]
+        task = app.task_table[req.task_name]
     except KeyError:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -51,16 +50,19 @@ async def call(
         )
     if user is not None:
         job.attrs['user'] = user
-    if redirect_job_stream:
+    if app.config.redirect_job_stream:
         job.redirect_out_err = True
-    await engine.submit_async(job)
-    return ser_job(job)
+    await app.engine.submit_async(job)
+    allow_proxy = "proxy" in app.config.allowed_routers
+    return ser_job(job, allow_proxy)
 
 
 @router.get("/list_all")
-async def get_task_list(user: T.Optional[User] = Depends(get_current_user)):
+async def get_task_list(
+        app: CustomFastAPI = Depends(get_app),
+        user: T.Optional[User] = Depends(get_current_user)):
     task_list = [
-        task_table.task_to_dict(t)
-        for t in task_table.table.values()
+        app.task_table.task_to_dict(t)
+        for t in app.task_table.table.values()
     ]
     return task_list

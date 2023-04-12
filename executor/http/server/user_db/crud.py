@@ -6,17 +6,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from . import models, schemas, utils, database
-from .. import config
 
 
-def init_db():
-    models.Base.metadata.create_all(bind=database.engine)
-    db = database.SessionLocal()
-    init_users(db)
+def init_db(
+        root_password: T.Optional[str],
+        user_database_url: str):
+    engine = database.get_engine(user_database_url)
+    models.Base.metadata.create_all(bind=engine)
+    db = database.get_local_session(engine)
+    init_users(db, root_password)
 
 
-def init_users(db: Session) -> T.Optional[models.User]:
-    root_password = config.root_password
+def init_users(
+        db: Session, root_password: T.Optional[str]
+        ) -> T.Optional[models.User]:
     if root_password is None:
         return None
     root = get_user_by_username_sync(db, "root")

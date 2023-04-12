@@ -17,14 +17,12 @@ class TaskTable(object):
         return self.table[key]
 
     def register(self, task: T.Union[LauncherBase, T.Callable]):
-        from .instance import engine
         if isinstance(task, SyncLauncher):
             task = task.to_async()
         elif isinstance(task, AsyncLauncher):
             task = task
         else:
             task = AsyncLauncher(task)
-        task._engine = engine
         self.table[task.name] = task
 
     @staticmethod

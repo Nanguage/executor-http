@@ -7,28 +7,31 @@ from jose import jwt, JWTError
 
 from executor.engine.job import Job
 
-from .user_db.database import SessionAsync
-from .user_db import schemas, crud, models, utils
-from .user_db.schemas import User, role_priority_over
-from . import config
-from .utils.oauth2cookie import OAuth2PasswordBearerCookie
+from ..user_db.database import get_async_session
+from ..user_db import schemas, crud, models, utils
+from ..user_db.schemas import User, role_priority_over
+from .oauth2cookie import OAuth2PasswordBearerCookie
+from .misc import get_app, CustomFastAPI
 
 
 def fake_token():
     return "fake_token"
 
 
-token_getter: T.Callable
-if config.user_mode != "free":
-    oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="user/token")
-    token_getter = oauth2_scheme
-else:
-    token_getter = fake_token
+def token_getter(app: CustomFastAPI = Depends(get_app)):
+    getter: T.Callable
+    if app.config.user_mode != "free":
+        oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="user/token")
+        getter = oauth2_scheme
+    else:
+        getter = fake_token
+    return getter
 
 
-async def get_db():
-    if config.user_mode != "free":
-        db = SessionAsync()
+async def get_db(app: CustomFastAPI = Depends(get_app)):
+    if app.config.user_mode != "free":
+        assert app.db_engine is not None
+        db = get_async_session(app.db_engine)
         try:
             yield db
         finally:
@@ -40,8 +43,9 @@ async def get_db():
 async def get_current_user(
         token: str = Depends(token_getter),
         db: AsyncSession = Depends(get_db),
+        app: CustomFastAPI = Depends(get_app),
         ) -> T.Optional[schemas.User]:
-    if config.user_mode != "free":
+    if app.config.user_mode != "free":
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials.",
@@ -49,7 +53,7 @@ async def get_current_user(
         )
         try:
             payload = jwt.decode(
-                token, config.jwt_secret_key, [config.jwt_algorithm])
+                token, app.config.jwt_secret_key, [app.config.jwt_algorithm])
             username = payload.get("sub")
             if username is None:
                 raise credentials_exception
@@ -82,12 +86,15 @@ async def auth_user(
 
 def create_access_token(
         subject: T.Union[str, T.Any],
+        access_token_expire_minutes: int,
+        jwt_secret_key: str,
+        jwt_algorithm: str,
         ) -> str:
-    dt = timedelta(minutes=config.access_token_expire_minutes)
+    dt = timedelta(minutes=access_token_expire_minutes)
     expires_delta = datetime.utcnow() + dt
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     encoded_jwt = jwt.encode(
-        to_encode, config.jwt_secret_key, config.jwt_algorithm)
+        to_encode, jwt_secret_key, jwt_algorithm)
     return encoded_jwt
 
 

@@ -9,7 +9,8 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from .. import config, auth
+from ..utils import auth, get_app, CustomFastAPI
+
 from ..user_db.schemas import User
 
 
@@ -34,8 +35,9 @@ def get_path(root_path: Path, path_str: str) -> Path:
 
 
 def get_user_path(
-        user: T.Optional[User] = Depends(auth.get_current_user)) -> Path:
-    working_path = Path(config.working_dir).absolute()
+        user: T.Optional[User] = Depends(auth.get_current_user),
+        app: "CustomFastAPI" = Depends(get_app)) -> Path:
+    working_path = Path(app.config.working_dir).absolute()
     if user is None:
         return working_path
     else:

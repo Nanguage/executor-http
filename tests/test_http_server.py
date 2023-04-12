@@ -8,7 +8,6 @@ from httpx import AsyncClient
 from fastapi.testclient import TestClient
 
 from executor.http.server.task import TaskTable
-from executor.http.server import config, instance
 from executor.engine.launcher import launcher
 
 

@@ -29,22 +29,22 @@ def pytest_sessionfinish(session, exitstatus):
 
 def _get_app(request):
     from executor.http.server.app import create_app
-    from executor.http.server import config
-    from executor.http.server import utils
+    from executor.http.server.config import ServerSetting, ValidRouters
 
     mode = request.param
-    routers_for_test = ["job", "task", "file", "proxy"]
+    routers_for_test: T.List[ValidRouters] = ["job", "task", "file", "proxy"]
     if mode == "free":
-        config.user_mode = "free"
-        config.allowed_routers = routers_for_test
-        utils.reload_routers()
+        config = ServerSetting(
+            user_mode="free",
+            allowed_routers=routers_for_test
+        )
     else:
-        config.allowed_routers = routers_for_test + ["user"]
-        config.user_mode = "hub"
-        config.root_password = "123"
-        utils.reload_routers()
-    app = create_app()
-    app.user_mode = mode
+        config = ServerSetting(
+            user_mode="hub",
+            allowed_routers=routers_for_test + ['user'],
+            root_password="123"
+        )
+    app = create_app(config)
     return app
 
 
@@ -75,7 +75,7 @@ def _get_header_from_respond(resp) -> dict:
 
 @pytest.fixture
 def headers(client: TestClient) -> T.Optional[dict]:
-    if client.app.user_mode == "free":
+    if client.app.config.user_mode == "free":
         return None
     else:
         resp = client.post("/user/token", data={
@@ -88,7 +88,7 @@ def headers(client: TestClient) -> T.Optional[dict]:
 @pytest.fixture
 async def async_get_headers(
         async_client: AsyncClient) -> T.Optional[dict]:
-    if async_client.app.user_mode == "free":
+    if async_client.app.config.user_mode == "free":
         return None
     else:
         resp = await async_client.post("/user/token", data={
@@ -100,15 +100,13 @@ async def async_get_headers(
 
 @pytest.fixture
 def base_path(client: TestClient) -> Path:
-    if client.app.user_mode == "free":
+    if client.app.config.user_mode == "free":
         return Path(".")
     else:
         return Path("root/")
 
 
 @pytest.fixture
-def task_table() -> "TaskTable":
-    from executor.http.server import config
-    task_table = config.task_table
-    task_table.table.clear()
-    return task_table
+def task_table(client: TestClient) -> "TaskTable":
+    app = client.app
+    return app.task_table

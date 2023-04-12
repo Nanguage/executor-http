@@ -1,4 +1,3 @@
-import re
 import sys
 import traceback
 import typing as T
@@ -8,12 +7,24 @@ from pathlib import Path
 from dataclasses import asdict
 
 from pydantic import BaseModel
+from fastapi import FastAPI, Request, Depends
 
 from executor.engine.job import Job, LocalJob, ThreadJob, ProcessJob
 from executor.engine.job.extend import SubprocessJob, WebappJob
 from executor.engine.manager import Jobs
 
-from .. import config
+if T.TYPE_CHECKING:
+    from executor.engine import Engine
+    from ..config import ServerSetting
+    from ..task import TaskTable
+    from sqlalchemy.ext.asyncio import AsyncEngine
+
+
+class CustomFastAPI(FastAPI):
+    config: "ServerSetting"
+    task_table: "TaskTable"
+    engine: "Engine"
+    db_engine: T.Optional["AsyncEngine"]
 
 
 class ConditionType(BaseModel):
@@ -50,7 +61,7 @@ def job_to_jobtype(job: Job) -> JobType:
     return _class_name_to_jobtype[type_name]
 
 
-def ser_job(job: Job) -> dict:
+def ser_job(job: Job, allow_proxy: bool) -> dict:
     """Convert job to a JSON-able dict."""
     if job.condition is not None:
         cls_name = job.condition.__class__.__name__
@@ -63,7 +74,7 @@ def ser_job(job: Job) -> dict:
         cond_dict = None
 
     attrs = copy(job.attrs)
-    if 'proxy' in config.allowed_routers:
+    if allow_proxy:
         if 'address' in job.attrs:
             attrs.pop('address')
 
@@ -85,55 +96,23 @@ def ser_job(job: Job) -> dict:
     }
 
 
-class Command(object):
-    def __init__(self, template: str):
-        self.template = template
-        self.placeholders = [
-            p.strip("{}") for p in
-            re.findall(r"\{.*?\}", self.template)
-        ]
-        self.name = template.split()[0]
-
-    def check_placeholder(self, arg_names: T.List[str]):
-        for arg in arg_names:
-            if arg not in self.placeholders:
-                raise ValueError(
-                    f"The argument {arg} is not in command templates.")
-
-    def format(self, vals: dict):
-        for ph in self.placeholders:
-            if ph not in vals:
-                raise ValueError(
-                    f"The value of placeholder {ph} is not provided.")
-        cmd = self.template.format(**vals)
-        return cmd
-
-
 def print_error(err):
     traceback.print_exc(file=sys.stderr)
     print(err, file=sys.stderr)
 
 
-def get_jobs() -> Jobs:
-    if config.monitor_mode:
-        if config.monitor_cache_path is not None:
-            cache_path = Path(config.monitor_cache_path)
+def get_app(request: Request) -> CustomFastAPI:
+    return request.app
+
+
+def get_jobs(app: CustomFastAPI) -> Jobs:
+    if app.config.monitor_mode:
+        if app.config.monitor_cache_path is not None:
+            cache_path = Path(app.config.monitor_cache_path)
             jobs = Jobs(cache_path / "jobs")
         else:
             raise ValueError(
                 "Monitor cache path is not provided, please set it in config.")
     else:
-        from ..instance import engine
-        jobs = engine.jobs
+        jobs = app.engine.jobs
     return jobs
-
-
-def reload_routers():
-    """Reload router modules
-    for switch user-mode / reload engine."""
-    import importlib
-    from .. import auth
-    from ..routers import file, job, monitor, proxy, task, user
-    modules = [auth, file, job, monitor, proxy, task, user]
-    for mod in modules:
-        importlib.reload(mod)
