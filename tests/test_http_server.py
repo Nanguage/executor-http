@@ -245,8 +245,10 @@ def test_remove_job(
 
 @pytest.mark.asyncio
 async def test_job_condition(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    task_table: TaskTable = async_client.app.task_table
+
     @task_table.register
     @launcher(job_type="local")
     def mul_3(a, b, c):
@@ -307,10 +309,9 @@ async def test_job_condition(
 
 @pytest.mark.asyncio
 async def test_subprocess_job(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
-    config.redirect_job_stream = True
-    instance.reload_engine()
+    task_table: TaskTable = async_client.app.task_table
 
     @launcher
     @cmd2func
@@ -361,8 +362,10 @@ async def test_subprocess_job(
 
 
 def test_webapp_job(
-        client: TestClient, task_table: TaskTable,
+        client: TestClient,
         headers: T.Optional[dict]):
+    task_table: TaskTable = client.app.task_table
+
     @task_table.register
     @launcher(job_type="webapp")
     def simple_httpd(ip, port):

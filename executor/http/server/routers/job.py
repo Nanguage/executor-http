@@ -97,7 +97,7 @@ async def remove_job(
     if job.status in ("pending", "running"):
         await job.cancel()
     app.engine.jobs.remove(job)
-    return ser_job(job, is_allow_proxy(app.engine))
+    return ser_job(job, is_allow_proxy(app))
 
 
 @router.get("/result/{job_id}")
