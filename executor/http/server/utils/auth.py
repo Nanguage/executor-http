@@ -1,7 +1,7 @@
 import typing as T
 from datetime import datetime, timedelta
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
@@ -14,7 +14,7 @@ from .oauth2cookie import OAuth2PasswordBearerCookie
 from .misc import get_app, CustomFastAPI
 
 
-def fake_token():
+async def fake_token(*args):
     return "fake_token"
 
 
@@ -26,6 +26,12 @@ def token_getter(app: CustomFastAPI = Depends(get_app)):
     else:
         getter = fake_token
     return getter
+
+
+async def token_dependency(
+        request: Request,
+        token_getter_func=Depends(token_getter)):
+    return await token_getter_func(request)
 
 
 async def get_db(app: CustomFastAPI = Depends(get_app)):
@@ -41,7 +47,7 @@ async def get_db(app: CustomFastAPI = Depends(get_app)):
 
 
 async def get_current_user(
-        token: str = Depends(token_getter),
+        token: str = Depends(token_dependency),
         db: AsyncSession = Depends(get_db),
         app: CustomFastAPI = Depends(get_app),
         ) -> T.Optional[schemas.User]:

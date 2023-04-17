@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from fastapi.testclient import TestClient
 
 from executor.http.server.task import TaskTable
+from executor.http.server.app import CustomFastAPI
 from executor.engine.launcher import launcher
 
 
@@ -94,8 +95,10 @@ def test_cancel_and_rerun_job(
 
 @pytest.mark.asyncio
 async def test_get_job_result(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    task_table: TaskTable = async_client.app.task_table
+
     @task_table.register
     @launcher(job_type="local")
     def mul(x, y):
@@ -142,10 +145,10 @@ def test_errors(client: TestClient, headers: T.Optional[dict]):
 
 @pytest.mark.asyncio
 async def test_fetch_log(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
-    config.redirect_job_stream = True
-    instance.reload_engine()
+    app: CustomFastAPI = async_client.app
+    task_table: TaskTable = app.task_table
 
     @launcher(job_type="local")
     def say_hello():
@@ -179,11 +182,12 @@ async def test_fetch_log(
 
 @pytest.mark.asyncio
 async def test_fetch_log_error(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    app: CustomFastAPI = async_client.app
+    task_table: TaskTable = app.task_table
     # turn-off redirect stream, test the read error
-    config.redirect_job_stream = False
-    instance.reload_engine()
+    app.config.redirect_job_stream = False
 
     @launcher(job_type="local")
     def say_hello():
@@ -212,8 +216,10 @@ async def test_fetch_log_error(
 
 
 def test_remove_job(
-        client: TestClient, task_table: TaskTable,
+        client: TestClient,
         headers: T.Optional[dict]):
+    task_table: TaskTable = client.app.task_table
+
     @task_table.register
     def mul_2(a, b):
         return a * b

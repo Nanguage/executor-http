@@ -9,9 +9,6 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-if T.TYPE_CHECKING:
-    from executor.http.server.task import TaskTable
-
 
 def pytest_sessionstart(session):
     sys.path.insert(0, abspath(join(__file__, "../../")))
@@ -104,9 +101,3 @@ def base_path(client: TestClient) -> Path:
         return Path(".")
     else:
         return Path("root/")
-
-
-@pytest.fixture
-def task_table(client: TestClient) -> "TaskTable":
-    app = client.app
-    return app.task_table
