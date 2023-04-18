@@ -3,10 +3,8 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
+from executor.http.server.config import ServerSetting
 from executor.http.server.user_db import crud, database, models, schemas
-from executor.http.server import config
-from executor.http.server.task import TaskTable
-from executor.http.server import instance
 from executor.engine.launcher import launcher
 
 
@@ -25,11 +23,12 @@ def login_client(client: TestClient, username: str, passwd: str):
 
 
 def test_error_password():
-    config.user_mode = "hub"
-    config.root_password = "123"
-    config.allowed_routers = ["job", "task", "file", "proxy", "user"]
-    instance.reload_engine()
-    app = create_app()
+    app = create_app(ServerSetting(
+        user_mode="hub",
+        root_password="123",
+        allowed_routers=["job", "task", "file", "proxy", "user"],
+    ))
+
     client = TestClient(app)
     resp = client.post("/user/token", data={
         "username": "fake",
@@ -38,9 +37,9 @@ def test_error_password():
     assert resp.status_code == 401
 
 
-def test_different_user(task_table: TaskTable):
-    models.Base.metadata.create_all(bind=database.engine)
-    db = database.SessionLocal()
+def create_db_for_test(engine):
+    models.Base.metadata.create_all(bind=engine)
+    db = database.get_local_session(engine)
     test_username = "user1"
     test_user_passwd = "123"
     test_user = crud.get_user_by_username_sync(db, test_username)
@@ -50,11 +49,19 @@ def test_different_user(task_table: TaskTable):
             role="user",
             password=test_user_passwd,)
         crud.create_user(db=db, user=create)
-    config.user_mode = "hub"
-    config.root_password = "123"
-    config.allowed_routers = ["job", "task", "file", "proxy", "user"]
-    instance.reload_engine()
-    app = create_app()
+    return test_username, test_user_passwd
+
+
+def test_different_user():
+    app = create_app(ServerSetting(
+        user_mode="hub",
+        root_password="123",
+        allowed_routers=["job", "task", "file", "proxy", "user"],
+    ))
+    task_table = app.task_table
+    db_engine = database.get_engine(app.config.user_database_url)
+    test_username, test_user_passwd = create_db_for_test(db_engine)
+
     client_user1 = TestClient(app)
     headers_user1 = login_client(client_user1, test_username, test_user_passwd)
     client_root = TestClient(app)

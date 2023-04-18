@@ -4,11 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from executor.http.server.app import create_app
-from executor.http.server import config
+from executor.http.server.config import ServerSetting
 from executor.engine import Engine, LocalJob, ThreadJob, ProcessJob
 
 
-@pytest.mark.order(-2)
 def test_list_all():
     engine = Engine()
 
@@ -20,17 +19,16 @@ def test_list_all():
         await engine.join()
 
     asyncio.run(submit_job())
-    config.allowed_routers = []
-    config.monitor_mode = True
-    config.monitor_cache_path = engine.cache_dir
 
-    app = create_app()
+    app = create_app(ServerSetting(
+        monitor_mode=True,
+        monitor_cache_path=engine.cache_dir
+    ))
     client = TestClient(app)
     resp = client.get("/monitor/list_all")
     assert len(resp.json()) == 3
 
 
-@pytest.mark.order(-1)
 def test_fetch_log():
     def say_hello():
         print("hello")
@@ -46,8 +44,10 @@ def test_fetch_log():
 
     asyncio.run(submit_job())
 
-    config.monitor_cache_path = engine.cache_dir
-    app = create_app()
+    app = create_app(ServerSetting(
+        monitor_mode=True,
+        monitor_cache_path=engine.cache_dir,
+    ))
     client = TestClient(app)
     resp = client.get(f"/monitor/stdout/{job1.id}")
     assert resp.status_code == 200
@@ -59,8 +59,10 @@ def test_fetch_log():
     resp = client.get(f"/monitor/stdout/{job2.id}")
     assert resp.status_code == 400
 
-    config.monitor_cache_path = None
-    app = create_app()
+    app = create_app(ServerSetting(
+        monitor_mode=True,
+        monitor_cache_path=None
+    ))
     client = TestClient(app)
-    resp = client.get(f"/monitor/stdout/{job1.id}")
-    assert resp.status_code == 400
+    with pytest.raises(AssertionError):
+        resp = client.get(f"/monitor/stdout/{job1.id}")

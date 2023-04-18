@@ -13,8 +13,9 @@ from executor.engine.launcher import launcher
 
 
 def test_task_reg_and_call(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
+        client: TestClient, headers: T.Optional[dict]):
+    task_table: TaskTable = client.app.task_table
+
     # test register
     def square(x: int):
         return x ** 2
@@ -56,8 +57,10 @@ def test_task_reg_and_call(
 
 
 def test_cancel_and_rerun_job(
-        client: TestClient, task_table: TaskTable,
-        headers: T.Optional[dict]):
+        client: TestClient, headers: T.Optional[dict]):
+
+    task_table: TaskTable = client.app.task_table
+
     def add(x, y):
         time.sleep(1)
         return x + y

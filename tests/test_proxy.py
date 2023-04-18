@@ -10,8 +10,10 @@ from executor.engine.launcher import launcher
 
 @pytest.mark.asyncio
 async def test_proxy(
-        async_client: AsyncClient, task_table: TaskTable,
+        async_client: AsyncClient,
         async_get_headers: T.Awaitable[T.Optional[dict]]):
+    task_table: TaskTable = async_client.app.task_table
+
     @task_table.register
     @launcher(job_type="webapp")
     def simple_httpd(ip, port):

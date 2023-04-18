@@ -7,7 +7,7 @@ from pathlib import Path
 from dataclasses import asdict
 
 from pydantic import BaseModel
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 
 from executor.engine.job import Job, LocalJob, ThreadJob, ProcessJob
 from executor.engine.job.extend import SubprocessJob, WebappJob

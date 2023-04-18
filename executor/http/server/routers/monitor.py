@@ -15,8 +15,9 @@ async def get_all_jobs_from_cache(
     jobs = get_jobs(app)
     jobs.update_from_cache()
     resp = []
+    allow_proxy = 'proxy' in app.config.allowed_routers
     for job in jobs.all_jobs():
-        resp.append(ser_job(job))
+        resp.append(ser_job(job, allow_proxy))
     return resp
 
 
