@@ -74,7 +74,7 @@ setup(
     long_description=get_long_description(),
     keywords=keywords,
     url=URL,
-    packages=find_namespace_packages(include=["executor/*"]),
+    packages=find_namespace_packages(include=["executor.*"]),
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
