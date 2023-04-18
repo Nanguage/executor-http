@@ -1,5 +1,3 @@
-import sys
-import traceback
 import typing as T
 from copy import copy
 from datetime import datetime
@@ -94,11 +92,6 @@ def ser_job(job: Job, allow_proxy: bool) -> dict:
         'stoped_time': format_datetime(job.stoped_time),
         'attrs': attrs,
     }
-
-
-def print_error(err):
-    traceback.print_exc(file=sys.stderr)
-    print(err, file=sys.stderr)
 
 
 def get_app(request: Request) -> CustomFastAPI:

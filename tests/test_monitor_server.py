@@ -28,6 +28,14 @@ def test_list_all():
     resp = client.get("/monitor/list_all")
     assert len(resp.json()) == 3
 
+    app = create_app(ServerSetting(
+        monitor_mode=True,
+        monitor_cache_path=None
+    ))
+    client = TestClient(app)
+    with pytest.raises(ValueError):
+        resp = client.get("/monitor/list_all")
+
 
 def test_fetch_log():
     def say_hello():

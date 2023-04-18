@@ -83,7 +83,7 @@ def run_app(
         port: int = 5000,
         log_level: str = "info",
         **other_uvicorn_kwargs,
-        ):
+        ):  # pragma: no cover
     uvicorn.run(
         app, host=host, port=port, log_level=log_level,
         **other_uvicorn_kwargs

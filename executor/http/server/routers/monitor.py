@@ -24,14 +24,7 @@ async def get_all_jobs_from_cache(
 def _read_then_return(
         job_id: str, log_file: str,
         monitor_cache_path: T.Union[str, Path]):
-    if monitor_cache_path is not None:
-        cache_path = Path(monitor_cache_path)
-    else:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Monitor cache path is not provided, "
-                   "please set it in config."
-        )
+    cache_path = Path(monitor_cache_path)
     job_cache_dir = cache_path / job_id
     try:
         with open(job_cache_dir / log_file) as f:

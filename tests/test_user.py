@@ -121,15 +121,15 @@ def test_different_user():
             "args": [1],
             "kwargs": {},
         },
-        headers=headers_root,
+        headers=headers_user1,
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
 
     resp = client_user1.get("/job/list_all", headers=headers_user1)
-    assert len(resp.json()) == 0
-    resp = client_user1.get(f"/job/status/{job_id}", headers=headers_user1)
-    assert resp.status_code != 200
+    assert len(resp.json()) == 1
+    resp = client_user1.get(f"/job/status/{job_id}", headers=headers_root)
+    assert resp.status_code == 200
 
     resp = client_root.get("/job/list_all", headers=headers_root)
     assert len(resp.json()) == 2

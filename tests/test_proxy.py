@@ -1,4 +1,5 @@
 import typing as T
+import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 import pytest
@@ -20,6 +21,12 @@ async def test_proxy(
         server_addr = (ip, port)
         httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
         httpd.serve_forever()
+
+    @task_table.register
+    @launcher(job_type="process")
+    def add(a, b):
+        time.sleep(2)
+        return a + b
 
     headers = await async_get_headers
 
@@ -64,3 +71,22 @@ async def test_proxy(
     resp = await async_client.get(
         f"/proxy/app/{job_id}/", headers=headers)
     assert resp.status_code == 400
+
+    # proxy a job that is not a webapp
+    resp = await async_client.post(
+        "/task/call",
+        json={
+            "task_name": "add",
+            "args": [1, 2],
+            "kwargs": {},
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()['id']
+    resp = await async_client.get(
+        f"/proxy/app/{job_id}/", headers=headers)
+    assert resp.status_code == 400
+    resp = await async_client.get(
+        f"/job/cancel/{job_id}", headers=headers)
+    assert resp.status_code == 200
