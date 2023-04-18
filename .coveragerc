@@ -18,3 +18,7 @@ exclude_lines =
 [run]
 omit =
     */__main__.py
+
+concurrency = 
+    thread
+    greenlet

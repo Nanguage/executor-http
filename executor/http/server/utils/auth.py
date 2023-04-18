@@ -83,7 +83,7 @@ async def auth_user(
     if user is None:
         return False
     hashed = user.hashed_password
-    if hashed is None:
+    if hashed is None:  # pragma: no cover
         return False
     if not utils.verify_password(password, hashed):
         return False

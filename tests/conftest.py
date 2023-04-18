@@ -15,6 +15,9 @@ def pytest_sessionstart(session):
     # remove proxy env
     os.environ['HTTP_PROXY'] = ''
     os.environ['HTTPS_PROXY'] = ''
+    # remove userdb
+    if os.path.exists("./user.db"):
+        os.remove("./user.db")
 
 
 def pytest_sessionfinish(session, exitstatus):

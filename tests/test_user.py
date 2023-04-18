@@ -62,15 +62,14 @@ def test_different_user():
     db_engine = database.get_engine(app.config.user_database_url)
     test_username, test_user_passwd = create_db_for_test(db_engine)
 
-    client_user1 = TestClient(app)
-    headers_user1 = login_client(client_user1, test_username, test_user_passwd)
-    client_root = TestClient(app)
-    headers_root = login_client(client_root, "root", "123")
+    client = TestClient(app)
+    headers_user1 = login_client(client, test_username, test_user_passwd)
+    headers_root = login_client(client, "root", "123")
 
-    resp = client_user1.get("/user/info", headers=headers_user1)
+    resp = client.get("/user/info", headers=headers_user1)
     assert resp.status_code == 200
     assert resp.json()['username'] == 'user1'
-    resp = client_root.get("/user/info", headers=headers_root)
+    resp = client.get("/user/info", headers=headers_root)
     assert resp.status_code == 200
     assert resp.json()['username'] == 'root'
 
@@ -85,7 +84,7 @@ def test_different_user():
         httpd = HTTPServer(server_addr, SimpleHTTPRequestHandler)
         httpd.serve_forever()
 
-    resp = client_root.post(
+    resp = client.post(
         "/task/call",
         json={
             "task_name": "simple_httpd",
@@ -96,7 +95,7 @@ def test_different_user():
     )
     assert resp.status_code == 200
     job_id = resp.json()['id']
-    resp = client_root.post(
+    resp = client.post(
         "/job/wait",
         json={
             "job_id": job_id,
@@ -107,14 +106,14 @@ def test_different_user():
     )
     assert resp.status_code == 200
 
-    resp = client_root.get(f"/proxy/app/{job_id}/", headers=headers_root)
+    resp = client.get(f"/proxy/app/{job_id}/", headers=headers_root)
     assert resp.status_code == 200
-    resp = client_user1.get(f"/proxy/app/{job_id}/", headers=headers_user1)
+    resp = client.get(f"/proxy/app/{job_id}/", headers=headers_user1)
     assert resp.status_code != 200
-    resp = client_root.get(f"/job/cancel/{job_id}", headers=headers_root)
+    resp = client.get(f"/job/cancel/{job_id}", headers=headers_root)
     assert resp.status_code == 200
 
-    resp = client_root.post(
+    resp = client.post(
         "/task/call",
         json={
             "task_name": "add1",
@@ -126,12 +125,12 @@ def test_different_user():
     assert resp.status_code == 200
     job_id = resp.json()['id']
 
-    resp = client_user1.get("/job/list_all", headers=headers_user1)
+    resp = client.get("/job/list_all", headers=headers_user1)
     assert len(resp.json()) == 1
-    resp = client_user1.get(f"/job/status/{job_id}", headers=headers_root)
+    resp = client.get(f"/job/status/{job_id}", headers=headers_root)
     assert resp.status_code == 200
 
-    resp = client_root.get("/job/list_all", headers=headers_root)
+    resp = client.get("/job/list_all", headers=headers_root)
     assert len(resp.json()) == 2
-    resp = client_root.get(f"/job/status/{job_id}", headers=headers_root)
+    resp = client.get(f"/job/status/{job_id}", headers=headers_root)
     assert resp.status_code == 200

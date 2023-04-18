@@ -63,7 +63,7 @@ async def _reverse_proxy(
         try:
             resp = await client.send(req, stream=True)
             break
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.warning(
                 f"Error when proxy request: {repr(e)} "
                 f"Try again, {count-1} times left.")
