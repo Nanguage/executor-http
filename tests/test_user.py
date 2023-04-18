@@ -37,6 +37,20 @@ def test_error_password():
     assert resp.status_code == 401
 
 
+def test_login_with_fake_token():
+    app = create_app(ServerSetting(
+        user_mode="hub",
+        root_password="123",
+        allowed_routers=["job", "task", "file", "proxy", "user"],
+    ))
+    client = TestClient(app)
+    fake_headers = {
+        "Authorization": "Bearer fake"
+    }
+    resp = client.get("/user/info", headers=fake_headers)
+    assert resp.status_code == 401
+
+
 def create_db_for_test(engine):
     models.Base.metadata.create_all(bind=engine)
     db = database.get_local_session(engine)

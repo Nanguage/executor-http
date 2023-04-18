@@ -400,3 +400,27 @@ def test_webapp_job(
         assert resp.json()['status'] == "running"
         resp = client.get(f"/job/cancel/{job_id}", headers=headers)
         assert resp.status_code == 200
+
+
+def test_register_job(
+        client: TestClient,
+        headers: T.Optional[dict]):
+    task_table: TaskTable = client.app.task_table
+
+    @task_table.register
+    @launcher(job_type="local", async_mode=True)
+    def mul_4(a: 'int', b: int, c: int):
+        return a * b * c
+
+    resp = client.post(
+        "/task/call",
+        json={
+            "task_name": "mul_4",
+            "args": [40, 2, 1],
+            "kwargs": {},
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    resp = client.get("/task/list_all", headers=headers)
+    assert resp.status_code == 200

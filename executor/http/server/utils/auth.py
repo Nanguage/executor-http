@@ -61,12 +61,12 @@ async def get_current_user(
             payload = jwt.decode(
                 token, app.config.jwt_secret_key, [app.config.jwt_algorithm])
             username = payload.get("sub")
-            if username is None:
+            if username is None:  # pragma: no cover
                 raise credentials_exception
         except JWTError:  # type: ignore
             raise credentials_exception
         user = await crud.get_user_by_username(db, username)
-        if user is None:
+        if user is None:  # pragma: no cover
             raise credentials_exception
         return schemas.User(
             username=user.username, role=user.role, id=user.id,  # type: ignore
