@@ -22,6 +22,7 @@ class ServerSetting:
         "http://localhost",
         "http://localhost:5000",
         "http://localhost:5173",
+        "https://nanguage.github.io",
     ])
 
     working_dir: T.Union[str, Path] = "."
