@@ -60,11 +60,16 @@ def create_app(
         if 'user' in app.config.allowed_routers:
             app.include_router(user.router)
 
-    if 'proxy' in app.config.allowed_routers:
+    def include_proxy_router():
         from .routers import proxy
         app.include_router(proxy.router)
         app.get("/{path:path}")(proxy.root_dispatch)
         app.post("/{path:path}")(proxy.root_dispatch)
+
+    if 'proxy' in app.config.allowed_routers:
+        include_proxy_router()
+
+    app.include_proxy_router = include_proxy_router
 
     app.add_middleware(
         CORSMiddleware,

@@ -23,6 +23,7 @@ class CustomFastAPI(FastAPI):
     task_table: "TaskTable"
     engine: "Engine"
     db_engine: T.Optional["AsyncEngine"]
+    include_proxy_router: T.Callable
 
 
 class ConditionType(BaseModel):
