@@ -36,7 +36,7 @@ class ServerSetting:
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     proxy_request_wait_time: float = 0.2
-    engine_setting: EngineSetting = EngineSetting(
+    engine_setting: EngineSetting = field(default_factory=lambda: EngineSetting(  # noqa: E501
         max_jobs=None,
         print_traceback=True,
-    )
+    ))
