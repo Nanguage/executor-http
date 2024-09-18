@@ -6,10 +6,13 @@ from fastapi.testclient import TestClient
 from executor.http.server.app import create_app
 from executor.http.server.config import ServerSetting
 from executor.engine import Engine, LocalJob, ThreadJob, ProcessJob
+from executor.engine import EngineSetting
 
 
 def test_list_all():
-    engine = Engine()
+    engine = Engine(setting=EngineSetting(
+        cache_type="diskcache"
+    ))
 
     async def submit_job():
         test_job_cls = [LocalJob, ThreadJob, ProcessJob]
